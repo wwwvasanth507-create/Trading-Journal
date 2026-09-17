@@ -1,0 +1,270 @@
+import React, { useState, useEffect } from 'react';
+import confetti from 'canvas-confetti';
+import Header from './components/Header';
+import Navigation from './components/Navigation';
+import TableToolbar from './components/ExcelSheet/TableToolbar';
+import TableGrid from './components/ExcelSheet/TableGrid';
+import TradeModal from './components/ExcelSheet/TradeModal';
+import ImageModal from './components/ExcelSheet/ImageModal';
+import AnalyticsView from './components/Dashboard/AnalyticsView';
+import PsychologyAuditView from './components/Psychology/PsychologyAuditView';
+import TradingCalendarView from './components/Calendar/TradingCalendarView';
+import RiskCalculatorModal from './components/Calculator/RiskCalculatorModal';
+import { 
+  loadTrades, 
+  saveTrades, 
+  loadAccountBalance, 
+  saveAccountBalance, 
+  resetToDemoData, 
+  clearAllTrades 
+} from './utils/storage';
+import { autoCalculateTrade } from './utils/calculations';
+
+export default function App() {
+  const [trades, setTrades] = useState(() => loadTrades());
+  const [accountBalance, setAccountBalance] = useState(() => loadAccountBalance());
+  const [activeTab, setActiveTab] = useState('sheet');
+
+  // Search & Filter State
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filters, setFilters] = useState({
+    result: 'ALL',
+    direction: 'ALL',
+    setup: 'ALL',
+    timeFrame: 'ALL',
+    ruleFollowed: 'ALL'
+  });
+
+  // Modals
+  const [isTradeModalOpen, setIsTradeModalOpen] = useState(false);
+  const [editingTrade, setEditingTrade] = useState(null);
+  const [isCalculatorOpen, setIsCalculatorOpen] = useState(false);
+  const [viewingImage, setViewingImage] = useState(null); // { url, title }
+
+  // Auto-save to LocalStorage whenever trades or balance change
+  useEffect(() => {
+    saveTrades(trades);
+  }, [trades]);
+
+  useEffect(() => {
+    saveAccountBalance(accountBalance);
+  }, [accountBalance]);
+
+  // Next trade sequence number
+  const nextTradeNum = trades.reduce((max, t) => Math.max(max, t.tradeNum || 0), 0) + 1;
+
+  // Filter & Search matching
+  const filteredTrades = trades.filter(t => {
+    // Search Query across Pair, Setup, Mistake, Emotion, Lesson
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      const matchPair = (t.pair || '').toLowerCase().includes(q);
+      const matchSetup = (t.setup || '').toLowerCase().includes(q);
+      const matchMistake = (t.mistake || '').toLowerCase().includes(q);
+      const matchEmotion = (t.emotion || '').toLowerCase().includes(q);
+      const matchLesson = (t.lesson || '').toLowerCase().includes(q);
+      if (!matchPair && !matchSetup && !matchMistake && !matchEmotion && !matchLesson) {
+        return false;
+      }
+    }
+
+    // Filters
+    if (filters.result !== 'ALL' && t.result !== filters.result) return false;
+    if (filters.direction !== 'ALL' && t.direction !== filters.direction) return false;
+    if (filters.setup !== 'ALL' && t.setup !== filters.setup) return false;
+    if (filters.timeFrame !== 'ALL' && t.timeFrame !== filters.timeFrame) return false;
+    if (filters.ruleFollowed !== 'ALL' && t.ruleFollowed !== filters.ruleFollowed) return false;
+
+    return true;
+  });
+
+  // Save or Update Trade from Modal
+  const handleSaveTrade = (savedTrade) => {
+    if (editingTrade) {
+      setTrades(prev => prev.map(t => t.id === savedTrade.id ? savedTrade : t));
+    } else {
+      setTrades(prev => [savedTrade, ...prev]);
+      if (savedTrade.result === 'WIN' && savedTrade.pnl > 0) {
+        confetti({
+          particleCount: 50,
+          spread: 60,
+          origin: { y: 0.7 }
+        });
+      }
+    }
+  };
+
+  // Add a clean editable row directly into the Excel grid
+  const handleAddInlineRow = () => {
+    const today = new Date().toISOString().split('T')[0];
+    const nowTime = new Date().toTimeString().substring(0, 5);
+    const newEmptyTrade = autoCalculateTrade({
+      id: 't-' + Date.now(),
+      tradeNum: nextTradeNum,
+      date: today,
+      time: nowTime,
+      pair: 'EURUSD',
+      direction: 'BUY',
+      setup: 'New Setup',
+      timeFrame: '15m',
+      entryPrice: 1.08000,
+      stopLoss: 1.07800,
+      takeProfit: 1.08600,
+      riskPercent: 1.0,
+      lotSize: '',
+      exitPrice: '',
+      result: 'OPEN',
+      pnl: null,
+      plannedRR: null,
+      realizedRR: null,
+      ruleFollowed: 'Yes',
+      mistake: 'None',
+      emotion: 'Disciplined',
+      screenshot: '',
+      lesson: ''
+    }, accountBalance);
+
+    setTrades(prev => [newEmptyTrade, ...prev]);
+  };
+
+  const handleOpenNewTrade = () => {
+    setEditingTrade(null);
+    setIsTradeModalOpen(true);
+  };
+
+  const handleEditTrade = (trade) => {
+    setEditingTrade(trade);
+    setIsTradeModalOpen(true);
+  };
+
+  const handleResetDemo = () => {
+    if (window.confirm('Reset all trades to default demo data? Your current trades will be replaced.')) {
+      const { trades: newTrades, balance } = resetToDemoData();
+      setTrades(newTrades);
+      setAccountBalance(balance);
+    }
+  };
+
+  const handleClearAll = () => {
+    if (window.confirm('Clear ALL trades from the journal?')) {
+      clearAllTrades();
+      setTrades([]);
+    }
+  };
+
+  const handleApplyFromCalculator = (calculatedValues) => {
+    const today = new Date().toISOString().split('T')[0];
+    const nowTime = new Date().toTimeString().substring(0, 5);
+    setEditingTrade({
+      tradeNum: nextTradeNum,
+      date: today,
+      time: nowTime,
+      setup: 'Calculated Setup',
+      timeFrame: '15m',
+      ruleFollowed: 'Yes',
+      mistake: 'None',
+      emotion: 'Disciplined',
+      screenshot: '',
+      lesson: '',
+      ...calculatedValues
+    });
+    setIsTradeModalOpen(true);
+  };
+
+  return (
+    <div className="app-container">
+      {/* Top Header */}
+      <Header 
+        trades={trades}
+        setTrades={setTrades}
+        accountBalance={accountBalance}
+        setAccountBalance={setAccountBalance}
+        onOpenNewTradeModal={handleOpenNewTrade}
+        onOpenCalculator={() => setIsCalculatorOpen(true)}
+        onResetDemo={handleResetDemo}
+      />
+
+      {/* Main Tab Navigation */}
+      <Navigation 
+        activeTab={activeTab} 
+        setActiveTab={setActiveTab} 
+      />
+
+      {/* Content Body */}
+      <main className="main-content">
+        {/* VIEW 1: EXCEL SMART SHEET */}
+        {activeTab === 'sheet' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            <TableToolbar 
+              searchQuery={searchQuery}
+              setSearchQuery={setSearchQuery}
+              filters={filters}
+              setFilters={setFilters}
+              onAddTrade={handleOpenNewTrade}
+              onAddInlineRow={handleAddInlineRow}
+              totalTrades={trades.length}
+              filteredCount={filteredTrades.length}
+              onClearTrades={handleClearAll}
+            />
+
+            <TableGrid 
+              trades={filteredTrades}
+              setTrades={setTrades}
+              accountBalance={accountBalance}
+              onEditTrade={handleEditTrade}
+              onViewImage={(url, title) => setViewingImage({ url, title })}
+            />
+          </div>
+        )}
+
+        {/* VIEW 2: ANALYTICS & EQUITY */}
+        {activeTab === 'analytics' && (
+          <AnalyticsView 
+            trades={trades} 
+            accountBalance={accountBalance} 
+          />
+        )}
+
+        {/* VIEW 3: PSYCHOLOGY & RULES */}
+        {activeTab === 'psychology' && (
+          <PsychologyAuditView 
+            trades={trades} 
+          />
+        )}
+
+        {/* VIEW 4: TRADING CALENDAR */}
+        {activeTab === 'calendar' && (
+          <TradingCalendarView 
+            trades={trades} 
+            onEditTrade={handleEditTrade} 
+          />
+        )}
+      </main>
+
+      {/* Modal: Add/Edit Trade with live auto-calculations */}
+      <TradeModal 
+        isOpen={isTradeModalOpen}
+        trade={editingTrade}
+        accountBalance={accountBalance}
+        onClose={() => { setIsTradeModalOpen(false); setEditingTrade(null); }}
+        onSave={handleSaveTrade}
+        nextTradeNum={nextTradeNum}
+      />
+
+      {/* Modal: Screenshot Zoom Lightbox */}
+      <ImageModal 
+        imageUrl={viewingImage?.url}
+        title={viewingImage?.title}
+        onClose={() => setViewingImage(null)}
+      />
+
+      {/* Modal: Position Size & Risk Calculator */}
+      <RiskCalculatorModal 
+        isOpen={isCalculatorOpen}
+        accountBalance={accountBalance}
+        onClose={() => setIsCalculatorOpen(false)}
+        onApplyToNewTrade={handleApplyFromCalculator}
+      />
+    </div>
+  );
+}
