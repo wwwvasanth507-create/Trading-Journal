@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { 
   TrendingUp, 
-  TrendingDown, 
   Award, 
   Target, 
   Percent, 
@@ -9,8 +8,7 @@ import {
   ShieldAlert, 
   BarChart3,
   Layers,
-  ArrowUpRight,
-  ArrowDownRight
+  Globe
 } from 'lucide-react';
 
 export default function AnalyticsView({ trades, accountBalance }) {
@@ -37,14 +35,11 @@ export default function AnalyticsView({ trades, accountBalance }) {
 
   const avgWin = wins.length > 0 ? totalGrossProfit / wins.length : 0;
   const avgLoss = losses.length > 0 ? totalGrossLoss / losses.length : 0;
-  const winLossRatio = avgLoss > 0 ? (avgWin / avgLoss).toFixed(2) : '—';
 
-  // Expectancy = (Win% * AvgWin) - (Loss% * AvgLoss)
   const expectancy = totalClosed > 0 
     ? ((wins.length / totalClosed) * avgWin) - ((losses.length / totalClosed) * avgLoss)
     : 0;
 
-  // Compute Cumulative Equity Points for Chart
   let cumulative = 0;
   let peak = 0;
   let maxDrawdown = 0;
@@ -71,7 +66,6 @@ export default function AnalyticsView({ trades, accountBalance }) {
     });
   });
 
-  // SVG Chart Dimensions
   const chartWidth = 700;
   const chartHeight = 240;
   const padding = { top: 25, right: 30, bottom: 35, left: 60 };
@@ -89,7 +83,6 @@ export default function AnalyticsView({ trades, accountBalance }) {
     return chartHeight - padding.bottom - ((val - minCum) / cumRange) * (chartHeight - padding.top - padding.bottom);
   };
 
-  // Generate SVG Path
   const zeroY = getY(0);
   const pathD = equityPoints.map((pt, idx) => `${idx === 0 ? 'M' : 'L'} ${getX(idx)} ${getY(pt.cumulative)}`).join(' ');
   const areaD = `${pathD} L ${getX(equityPoints.length - 1)} ${zeroY} L ${getX(0)} ${zeroY} Z`;
@@ -118,11 +111,22 @@ export default function AnalyticsView({ trades, accountBalance }) {
 
   const pairList = Object.entries(pairStats).sort((a, b) => b[1].pnl - a[1].pnl);
 
+  // Performance by Market Session
+  const sessionStats = {};
+  closedTrades.forEach(t => {
+    const sess = t.session || 'London';
+    if (!sessionStats[sess]) sessionStats[sess] = { count: 0, pnl: 0, wins: 0 };
+    sessionStats[sess].count += 1;
+    sessionStats[sess].pnl += (parseFloat(t.pnl) || 0);
+    if (t.result === 'WIN') sessionStats[sess].wins += 1;
+  });
+
+  const sessionList = Object.entries(sessionStats).sort((a, b) => b[1].pnl - a[1].pnl);
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
       {/* KPI Cards Grid */}
       <div className="kpi-grid">
-        {/* Net P&L */}
         <div className="kpi-card">
           <div className="kpi-header">
             <span>Net Realized P&L</span>
@@ -138,7 +142,6 @@ export default function AnalyticsView({ trades, accountBalance }) {
           </div>
         </div>
 
-        {/* Win Rate */}
         <div className="kpi-card">
           <div className="kpi-header">
             <span>Win Rate</span>
@@ -154,7 +157,6 @@ export default function AnalyticsView({ trades, accountBalance }) {
           </div>
         </div>
 
-        {/* Profit Factor */}
         <div className="kpi-card">
           <div className="kpi-header">
             <span>Profit Factor</span>
@@ -170,7 +172,6 @@ export default function AnalyticsView({ trades, accountBalance }) {
           </div>
         </div>
 
-        {/* Trade Expectancy */}
         <div className="kpi-card">
           <div className="kpi-header">
             <span>Expectancy / Trade</span>
@@ -186,7 +187,6 @@ export default function AnalyticsView({ trades, accountBalance }) {
           </div>
         </div>
 
-        {/* Max Drawdown */}
         <div className="kpi-card">
           <div className="kpi-header">
             <span>Max Drawdown</span>
@@ -198,12 +198,12 @@ export default function AnalyticsView({ trades, accountBalance }) {
             -${maxDrawdown.toFixed(2)}
           </div>
           <div className="kpi-sub">
-            {((maxDrawdown / accountBalance) * 100).toFixed(1)}% of account capital
+            {((maxDrawdown / accountBalance) * 100).toFixed(1)}% of capital
           </div>
         </div>
       </div>
 
-      {/* Visual Win / Loss Distribution Bar */}
+      {/* Outcome Bar */}
       <div className="chart-card">
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div className="chart-title">
@@ -236,7 +236,7 @@ export default function AnalyticsView({ trades, accountBalance }) {
               <strong style={{ color: hoveredPoint.pnl >= 0 ? 'var(--color-win)' : 'var(--color-loss)' }}>
                 {hoveredPoint.pnl >= 0 ? '+' : ''}${hoveredPoint.pnl}
               </strong>{' '}
-              | Total: <strong>${hoveredPoint.cumulative}</strong>
+              | Equity: <strong>${hoveredPoint.cumulative}</strong>
             </div>
           )}
         </div>
@@ -248,13 +248,12 @@ export default function AnalyticsView({ trades, accountBalance }) {
             style={{ width: '100%', height: 'auto', minWidth: '550px' }}
           >
             <defs>
-              <linearGradient id="equityGrad" x1="0%" y1="0%" x2="0%" y2="100%">
-                <stop offset="0%" stopColor="#3b82f6" stopOpacity="0.4" />
+              <linearGradient id="equityGrad" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#3b82f6" stopOpacity="0.35" />
                 <stop offset="100%" stopColor="#3b82f6" stopOpacity="0.0" />
               </linearGradient>
             </defs>
 
-            {/* Zero Line */}
             <line 
               x1={padding.left} 
               y1={zeroY} 
@@ -274,7 +273,6 @@ export default function AnalyticsView({ trades, accountBalance }) {
               $0
             </text>
 
-            {/* Top / Bottom Reference lines */}
             <text 
               x={padding.left - 8} 
               y={padding.top + 4} 
@@ -285,25 +283,11 @@ export default function AnalyticsView({ trades, accountBalance }) {
             >
               +${maxCum.toFixed(0)}
             </text>
-            {minCum < 0 && (
-              <text 
-                x={padding.left - 8} 
-                y={chartHeight - padding.bottom + 4} 
-                fill="var(--text-muted)" 
-                fontSize="10" 
-                fontFamily="var(--font-mono)" 
-                textAnchor="end"
-              >
-                ${minCum.toFixed(0)}
-              </text>
-            )}
 
-            {/* Shaded Area */}
             {equityPoints.length > 1 && (
               <path d={areaD} fill="url(#equityGrad)" />
             )}
 
-            {/* Main Equity Line */}
             {equityPoints.length > 1 && (
               <path 
                 d={pathD} 
@@ -315,7 +299,6 @@ export default function AnalyticsView({ trades, accountBalance }) {
               />
             )}
 
-            {/* Data Points */}
             {equityPoints.map((pt, idx) => {
               if (idx === 0) return null;
               const cx = getX(idx);
@@ -339,7 +322,7 @@ export default function AnalyticsView({ trades, accountBalance }) {
         </div>
       </div>
 
-      {/* Breakdowns: Setups & Pairs */}
+      {/* Breakdowns: Setups, Pairs, & Sessions */}
       <div className="analytics-grid">
         {/* Setup Performance */}
         <div className="chart-card">
@@ -375,29 +358,56 @@ export default function AnalyticsView({ trades, accountBalance }) {
           </div>
         </div>
 
-        {/* Pair Performance */}
-        <div className="chart-card">
-          <div className="chart-title">
-            <BarChart3 size={18} color="var(--accent-primary)" />
-            <span>Asset / Pair Leaderboard</span>
+        {/* Market Session & Pair Breakdown */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+          <div className="chart-card">
+            <div className="chart-title">
+              <Globe size={18} color="var(--accent-primary)" />
+              <span>Performance by Session</span>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+              {sessionList.map(([sessName, data]) => {
+                const sessWinRate = data.count > 0 ? Math.round((data.wins / data.count) * 100) : 0;
+                const isProfit = data.pnl >= 0;
+                return (
+                  <div key={sessName} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.55rem 0.75rem', background: 'var(--bg-secondary)', borderRadius: '8px', border: '1px solid var(--border-subtle)' }}>
+                    <div>
+                      <span style={{ fontWeight: 700, fontSize: '0.88rem' }}>{sessName} Session</span>
+                      <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>{data.count} trades · {sessWinRate}% win</div>
+                    </div>
+                    <div style={{ fontFamily: 'var(--font-mono)', fontWeight: 700, color: isProfit ? 'var(--color-win)' : 'var(--color-loss)' }}>
+                      {isProfit ? '+' : ''}${data.pnl.toFixed(2)}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           </div>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
-            {pairList.map(([pairName, data]) => {
-              const pairWinRate = data.count > 0 ? Math.round((data.wins / data.count) * 100) : 0;
-              const isProfit = data.pnl >= 0;
-              return (
-                <div key={pairName} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.5rem 0.75rem', background: 'var(--bg-secondary)', borderRadius: '8px', border: '1px solid var(--border-subtle)' }}>
-                  <div>
-                    <span style={{ fontWeight: 700, letterSpacing: '0.02em' }}>{pairName}</span>
-                    <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>{data.count} trades · {pairWinRate}% win</div>
+          <div className="chart-card">
+            <div className="chart-title">
+              <BarChart3 size={18} color="var(--accent-primary)" />
+              <span>Asset Leaderboard</span>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+              {pairList.map(([pairName, data]) => {
+                const pairWinRate = data.count > 0 ? Math.round((data.wins / data.count) * 100) : 0;
+                const isProfit = data.pnl >= 0;
+                return (
+                  <div key={pairName} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.55rem 0.75rem', background: 'var(--bg-secondary)', borderRadius: '8px', border: '1px solid var(--border-subtle)' }}>
+                    <div>
+                      <span style={{ fontWeight: 700, letterSpacing: '0.02em' }}>{pairName}</span>
+                      <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>{data.count} trades · {pairWinRate}% win</div>
+                    </div>
+                    <div style={{ fontFamily: 'var(--font-mono)', fontWeight: 700, color: isProfit ? 'var(--color-win)' : 'var(--color-loss)' }}>
+                      {isProfit ? '+' : ''}${data.pnl.toFixed(2)}
+                    </div>
                   </div>
-                  <div style={{ fontFamily: 'var(--font-mono)', fontWeight: 700, color: isProfit ? 'var(--color-win)' : 'var(--color-loss)' }}>
-                    {isProfit ? '+' : ''}${data.pnl.toFixed(2)}
-                  </div>
-                </div>
-              );
-            })}
+                );
+              })}
+            </div>
           </div>
         </div>
       </div>

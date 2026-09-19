@@ -10,11 +10,14 @@ import AnalyticsView from './components/Dashboard/AnalyticsView';
 import PsychologyAuditView from './components/Psychology/PsychologyAuditView';
 import TradingCalendarView from './components/Calendar/TradingCalendarView';
 import RiskCalculatorModal from './components/Calculator/RiskCalculatorModal';
+import KeyboardShortcutsModal from './components/KeyboardShortcutsModal';
 import { 
   loadTrades, 
   saveTrades, 
   loadAccountBalance, 
   saveAccountBalance, 
+  loadEquityTarget,
+  saveEquityTarget,
   resetToDemoData, 
   clearAllTrades 
 } from './utils/storage';
@@ -23,7 +26,9 @@ import { autoCalculateTrade } from './utils/calculations';
 export default function App() {
   const [trades, setTrades] = useState(() => loadTrades());
   const [accountBalance, setAccountBalance] = useState(() => loadAccountBalance());
+  const [equityTarget, setEquityTarget] = useState(() => loadEquityTarget());
   const [activeTab, setActiveTab] = useState('sheet');
+  const [isCompact, setIsCompact] = useState(false);
 
   // Search & Filter State
   const [searchQuery, setSearchQuery] = useState('');
@@ -31,6 +36,7 @@ export default function App() {
     result: 'ALL',
     direction: 'ALL',
     setup: 'ALL',
+    session: 'ALL',
     timeFrame: 'ALL',
     ruleFollowed: 'ALL'
   });
@@ -39,9 +45,10 @@ export default function App() {
   const [isTradeModalOpen, setIsTradeModalOpen] = useState(false);
   const [editingTrade, setEditingTrade] = useState(null);
   const [isCalculatorOpen, setIsCalculatorOpen] = useState(false);
-  const [viewingImage, setViewingImage] = useState(null); // { url, title }
+  const [isShortcutsOpen, setIsShortcutsOpen] = useState(false);
+  const [viewingImage, setViewingImage] = useState(null);
 
-  // Auto-save to LocalStorage whenever trades or balance change
+  // Persistence Effects
   useEffect(() => {
     saveTrades(trades);
   }, [trades]);
@@ -50,12 +57,55 @@ export default function App() {
     saveAccountBalance(accountBalance);
   }, [accountBalance]);
 
-  // Next trade sequence number
+  useEffect(() => {
+    saveEquityTarget(equityTarget);
+  }, [equityTarget]);
+
+  // Global Keyboard Shortcuts Listener (N, C, 1, 2, 3, 4, ?, Esc)
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      // Don't trigger hotkeys if user is typing in an input/textarea
+      const tag = document.activeElement?.tagName.toLowerCase();
+      if (tag === 'input' || tag === 'textarea' || tag === 'select') {
+        if (e.key === 'Escape') {
+          document.activeElement.blur();
+        }
+        return;
+      }
+
+      if (e.key === 'n' || e.key === 'N') {
+        e.preventDefault();
+        setEditingTrade(null);
+        setIsTradeModalOpen(true);
+      } else if (e.key === 'c' || e.key === 'C') {
+        e.preventDefault();
+        setIsCalculatorOpen(prev => !prev);
+      } else if (e.key === '1') {
+        setActiveTab('sheet');
+      } else if (e.key === '2') {
+        setActiveTab('analytics');
+      } else if (e.key === '3') {
+        setActiveTab('psychology');
+      } else if (e.key === '4') {
+        setActiveTab('calendar');
+      } else if (e.key === '?') {
+        e.preventDefault();
+        setIsShortcutsOpen(prev => !prev);
+      } else if (e.key === 'Escape') {
+        setIsTradeModalOpen(false);
+        setIsCalculatorOpen(false);
+        setIsShortcutsOpen(false);
+        setViewingImage(null);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
   const nextTradeNum = trades.reduce((max, t) => Math.max(max, t.tradeNum || 0), 0) + 1;
 
-  // Filter & Search matching
   const filteredTrades = trades.filter(t => {
-    // Search Query across Pair, Setup, Mistake, Emotion, Lesson
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
       const matchPair = (t.pair || '').toLowerCase().includes(q);
@@ -68,17 +118,16 @@ export default function App() {
       }
     }
 
-    // Filters
     if (filters.result !== 'ALL' && t.result !== filters.result) return false;
     if (filters.direction !== 'ALL' && t.direction !== filters.direction) return false;
     if (filters.setup !== 'ALL' && t.setup !== filters.setup) return false;
+    if (filters.session !== 'ALL' && (t.session || 'London') !== filters.session) return false;
     if (filters.timeFrame !== 'ALL' && t.timeFrame !== filters.timeFrame) return false;
     if (filters.ruleFollowed !== 'ALL' && t.ruleFollowed !== filters.ruleFollowed) return false;
 
     return true;
   });
 
-  // Save or Update Trade from Modal
   const handleSaveTrade = (savedTrade) => {
     if (editingTrade) {
       setTrades(prev => prev.map(t => t.id === savedTrade.id ? savedTrade : t));
@@ -94,7 +143,6 @@ export default function App() {
     }
   };
 
-  // Add a clean editable row directly into the Excel grid
   const handleAddInlineRow = () => {
     const today = new Date().toISOString().split('T')[0];
     const nowTime = new Date().toTimeString().substring(0, 5);
@@ -103,6 +151,7 @@ export default function App() {
       tradeNum: nextTradeNum,
       date: today,
       time: nowTime,
+      session: 'London',
       pair: 'EURUSD',
       direction: 'BUY',
       setup: 'New Setup',
@@ -139,9 +188,10 @@ export default function App() {
 
   const handleResetDemo = () => {
     if (window.confirm('Reset all trades to default demo data? Your current trades will be replaced.')) {
-      const { trades: newTrades, balance } = resetToDemoData();
+      const { trades: newTrades, balance, target } = resetToDemoData();
       setTrades(newTrades);
       setAccountBalance(balance);
+      setEquityTarget(target);
     }
   };
 
@@ -159,6 +209,7 @@ export default function App() {
       tradeNum: nextTradeNum,
       date: today,
       time: nowTime,
+      session: 'London',
       setup: 'Calculated Setup',
       timeFrame: '15m',
       ruleFollowed: 'Yes',
@@ -171,6 +222,8 @@ export default function App() {
     setIsTradeModalOpen(true);
   };
 
+  const closedTradesCount = trades.filter(t => t.result !== 'OPEN').length;
+
   return (
     <div className="app-container">
       {/* Top Header */}
@@ -179,8 +232,11 @@ export default function App() {
         setTrades={setTrades}
         accountBalance={accountBalance}
         setAccountBalance={setAccountBalance}
+        equityTarget={equityTarget}
+        setEquityTarget={setEquityTarget}
         onOpenNewTradeModal={handleOpenNewTrade}
         onOpenCalculator={() => setIsCalculatorOpen(true)}
+        onOpenShortcuts={() => setIsShortcutsOpen(true)}
         onResetDemo={handleResetDemo}
       />
 
@@ -188,6 +244,8 @@ export default function App() {
       <Navigation 
         activeTab={activeTab} 
         setActiveTab={setActiveTab} 
+        totalTrades={trades.length}
+        closedTradesCount={closedTradesCount}
       />
 
       {/* Content Body */}
@@ -200,6 +258,8 @@ export default function App() {
               setSearchQuery={setSearchQuery}
               filters={filters}
               setFilters={setFilters}
+              isCompact={isCompact}
+              setIsCompact={setIsCompact}
               onAddTrade={handleOpenNewTrade}
               onAddInlineRow={handleAddInlineRow}
               totalTrades={trades.length}
@@ -211,6 +271,7 @@ export default function App() {
               trades={filteredTrades}
               setTrades={setTrades}
               accountBalance={accountBalance}
+              isCompact={isCompact}
               onEditTrade={handleEditTrade}
               onViewImage={(url, title) => setViewingImage({ url, title })}
             />
@@ -241,7 +302,7 @@ export default function App() {
         )}
       </main>
 
-      {/* Modal: Add/Edit Trade with live auto-calculations */}
+      {/* Modal: Add/Edit Trade */}
       <TradeModal 
         isOpen={isTradeModalOpen}
         trade={editingTrade}
@@ -264,6 +325,12 @@ export default function App() {
         accountBalance={accountBalance}
         onClose={() => setIsCalculatorOpen(false)}
         onApplyToNewTrade={handleApplyFromCalculator}
+      />
+
+      {/* Modal: Keyboard Shortcuts Helper */}
+      <KeyboardShortcutsModal
+        isOpen={isShortcutsOpen}
+        onClose={() => setIsShortcutsOpen(false)}
       />
     </div>
   );

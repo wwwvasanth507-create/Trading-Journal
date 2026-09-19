@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
-import { X, Calculator, ArrowRight, ShieldCheck, DollarSign, Percent } from 'lucide-react';
+import { X, Calculator, ArrowRight } from 'lucide-react';
 import { 
   calculateSLDistance, 
-  calculateTPDistance, 
   calculatePlannedRR, 
   calculateLotSize, 
   calculateRiskAmount 
 } from '../../utils/calculations';
+import { POPULAR_ASSETS } from '../../utils/sampleData';
 
 export default function RiskCalculatorModal({ 
   isOpen, 
@@ -14,15 +14,15 @@ export default function RiskCalculatorModal({
   accountBalance, 
   onApplyToNewTrade 
 }) {
-  if (!isOpen) return null;
-
   const [pair, setPair] = useState('EURUSD');
   const [direction, setDirection] = useState('BUY');
-  const [balance, setBalance] = useState(accountBalance.toString());
+  const [balance, setBalance] = useState(() => (accountBalance || 10000).toString());
   const [riskPct, setRiskPct] = useState('1.0');
   const [entry, setEntry] = useState('');
   const [sl, setSl] = useState('');
   const [tp, setTp] = useState('');
+
+  if (!isOpen) return null;
 
   const balNum = parseFloat(balance) || 0;
   const riskNum = parseFloat(riskPct) || 0;
@@ -31,7 +31,6 @@ export default function RiskCalculatorModal({
   const tpNum = parseFloat(tp) || 0;
 
   const slDist = calculateSLDistance(direction, entryNum, slNum);
-  const tpDist = calculateTPDistance(direction, entryNum, tpNum);
   const riskAmount = calculateRiskAmount(balNum, riskNum);
   const plannedRR = calculatePlannedRR(direction, entryNum, slNum, tpNum);
 
@@ -55,7 +54,7 @@ export default function RiskCalculatorModal({
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div 
-        className="modal-content" 
+        className="modal-container" 
         onClick={e => e.stopPropagation()} 
         style={{ maxWidth: '640px' }}
       >
@@ -78,7 +77,7 @@ export default function RiskCalculatorModal({
 
         <div className="modal-body">
           {/* Real-time Calculation Result Box */}
-          <div className="calc-preview-grid" style={{ gridTemplateColumns: 'repeat(3, 1fr)', background: 'linear-gradient(135deg, #111827 0%, #1e293b 100%)' }}>
+          <div className="calc-preview-grid" style={{ gridTemplateColumns: 'repeat(3, 1fr)', background: 'linear-gradient(135deg, #0d1322 0%, #1e293b 100%)' }}>
             <div className="calc-card">
               <span className="calc-card-label">Allowed Risk ($)</span>
               <span className="calc-card-value highlight">
@@ -96,6 +95,23 @@ export default function RiskCalculatorModal({
               <span className="calc-card-value">
                 {plannedRR ? `1 : ${plannedRR}` : '—'}
               </span>
+            </div>
+          </div>
+
+          {/* Quick Presets */}
+          <div>
+            <span className="form-label" style={{ marginBottom: '0.3rem', display: 'block' }}>Preset Pair:</span>
+            <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
+              {POPULAR_ASSETS.map(asset => (
+                <button 
+                  key={asset.symbol}
+                  type="button"
+                  className={`asset-chip ${pair === asset.symbol ? 'active' : ''}`}
+                  onClick={() => setPair(asset.symbol)}
+                >
+                  {asset.symbol}
+                </button>
+              ))}
             </div>
           </div>
 

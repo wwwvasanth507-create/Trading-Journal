@@ -1,12 +1,14 @@
 import React from 'react';
-import { Search, Filter, Plus, Trash2, SlidersHorizontal } from 'lucide-react';
-import { SETUP_OPTIONS, TIMEFRAME_OPTIONS } from '../../utils/sampleData';
+import { Search, Plus, Trash2, Rows, Maximize2 } from 'lucide-react';
+import { SETUP_OPTIONS, SESSION_OPTIONS } from '../../utils/sampleData';
 
 export default function TableToolbar({ 
   searchQuery, 
   setSearchQuery, 
   filters, 
-  setFilters, 
+  setFilters,
+  isCompact,
+  setIsCompact,
   onAddTrade,
   onAddInlineRow,
   totalTrades,
@@ -17,11 +19,25 @@ export default function TableToolbar({
     setFilters(prev => ({ ...prev, [key]: value }));
   };
 
+  const setQuickFilter = (preset) => {
+    if (preset === 'WIN') {
+      setFilters(prev => ({ ...prev, result: 'WIN', ruleFollowed: 'ALL' }));
+    } else if (preset === 'LOSS') {
+      setFilters(prev => ({ ...prev, result: 'LOSS', ruleFollowed: 'ALL' }));
+    } else if (preset === 'VIOLATION') {
+      setFilters(prev => ({ ...prev, result: 'ALL', ruleFollowed: 'No' }));
+    } else if (preset === 'OPEN') {
+      setFilters(prev => ({ ...prev, result: 'OPEN', ruleFollowed: 'ALL' }));
+    } else {
+      resetFilters();
+    }
+  };
+
   const hasActiveFilters = searchQuery || 
     filters.result !== 'ALL' || 
     filters.direction !== 'ALL' || 
     filters.setup !== 'ALL' || 
-    filters.timeFrame !== 'ALL' || 
+    filters.session !== 'ALL' || 
     filters.ruleFollowed !== 'ALL';
 
   const resetFilters = () => {
@@ -30,7 +46,7 @@ export default function TableToolbar({
       result: 'ALL',
       direction: 'ALL',
       setup: 'ALL',
-      timeFrame: 'ALL',
+      session: 'ALL',
       ruleFollowed: 'ALL'
     });
   };
@@ -50,74 +66,101 @@ export default function TableToolbar({
           />
         </div>
 
-        {/* Filter: Result */}
-        <select 
-          className="filter-select"
-          value={filters.result}
-          onChange={e => handleFilterChange('result', e.target.value)}
-        >
-          <option value="ALL">Result: All</option>
-          <option value="WIN">WIN only</option>
-          <option value="LOSS">LOSS only</option>
-          <option value="BE">BE (Break Even)</option>
-          <option value="OPEN">OPEN Trades</option>
-        </select>
+        {/* Quick Filter Chips */}
+        <div style={{ display: 'flex', gap: '0.35rem', alignItems: 'center' }}>
+          <button 
+            className={`quick-chip ${filters.result === 'ALL' && filters.ruleFollowed === 'ALL' ? 'active' : ''}`}
+            onClick={() => setQuickFilter('ALL')}
+          >
+            All
+          </button>
+          <button 
+            className={`quick-chip ${filters.result === 'WIN' ? 'active' : ''}`}
+            onClick={() => setQuickFilter('WIN')}
+          >
+            🎯 Wins
+          </button>
+          <button 
+            className={`quick-chip ${filters.result === 'LOSS' ? 'active' : ''}`}
+            onClick={() => setQuickFilter('LOSS')}
+          >
+            🛑 Losses
+          </button>
+          <button 
+            className={`quick-chip ${filters.ruleFollowed === 'No' ? 'active' : ''}`}
+            onClick={() => setQuickFilter('VIOLATION')}
+          >
+            ⚠️ Rule Breaks
+          </button>
+          <button 
+            className={`quick-chip ${filters.result === 'OPEN' ? 'active' : ''}`}
+            onClick={() => setQuickFilter('OPEN')}
+          >
+            ⚡ Open
+          </button>
+        </div>
 
-        {/* Filter: Direction */}
-        <select 
-          className="filter-select"
-          value={filters.direction}
-          onChange={e => handleFilterChange('direction', e.target.value)}
-        >
-          <option value="ALL">Direction: All</option>
-          <option value="BUY">BUY / Long</option>
-          <option value="SELL">SELL / Short</option>
-        </select>
+        {/* Advanced Filters */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <select 
+            className="filter-select"
+            value={filters.direction}
+            onChange={e => handleFilterChange('direction', e.target.value)}
+          >
+            <option value="ALL">Direction: All</option>
+            <option value="BUY">BUY / Long</option>
+            <option value="SELL">SELL / Short</option>
+          </select>
 
-        {/* Filter: Setup */}
-        <select 
-          className="filter-select"
-          value={filters.setup}
-          onChange={e => handleFilterChange('setup', e.target.value)}
-        >
-          <option value="ALL">Setup: All</option>
-          {SETUP_OPTIONS.map(s => <option key={s} value={s}>{s}</option>)}
-        </select>
+          <select 
+            className="filter-select"
+            value={filters.session || 'ALL'}
+            onChange={e => handleFilterChange('session', e.target.value)}
+          >
+            <option value="ALL">Session: All</option>
+            {SESSION_OPTIONS.map(s => <option key={s} value={s}>{s}</option>)}
+          </select>
 
-        {/* Filter: Rule Followed */}
-        <select 
-          className="filter-select"
-          value={filters.ruleFollowed}
-          onChange={e => handleFilterChange('ruleFollowed', e.target.value)}
-        >
-          <option value="ALL">Rules: All</option>
-          <option value="Yes">Rules: Followed</option>
-          <option value="No">Rules: Violated</option>
-          <option value="Partial">Rules: Partial</option>
-        </select>
+          <select 
+            className="filter-select"
+            value={filters.setup}
+            onChange={e => handleFilterChange('setup', e.target.value)}
+          >
+            <option value="ALL">Setup: All</option>
+            {SETUP_OPTIONS.map(s => <option key={s} value={s}>{s}</option>)}
+          </select>
+        </div>
 
         {hasActiveFilters && (
           <button 
             className="btn btn-secondary" 
-            style={{ padding: '0.4rem 0.75rem', fontSize: '0.78rem' }}
+            style={{ padding: '0.35rem 0.65rem', fontSize: '0.78rem' }}
             onClick={resetFilters}
           >
-            Reset Filters
+            Reset
           </button>
         )}
       </div>
 
       {/* Action Tools */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+        <button 
+          className="btn btn-secondary btn-icon"
+          onClick={() => setIsCompact(!isCompact)}
+          title={isCompact ? 'Switch to Standard Grid Density' : 'Switch to Compact Grid Density'}
+        >
+          {isCompact ? <Maximize2 size={15} /> : <Rows size={15} />}
+        </button>
+
         <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-          Showing <strong>{filteredCount}</strong> of <strong>{totalTrades}</strong> trades
+          Showing <strong>{filteredCount}</strong> of <strong>{totalTrades}</strong>
         </span>
 
         <button 
           className="btn btn-primary"
           onClick={onAddTrade}
           style={{ padding: '0.45rem 0.85rem' }}
-          title="Open modal to add a trade"
+          title="Open modal to add a trade [N]"
         >
           <Plus size={15} />
           <span>Add Trade</span>
@@ -127,7 +170,7 @@ export default function TableToolbar({
           className="btn btn-secondary"
           onClick={onAddInlineRow}
           style={{ padding: '0.45rem 0.85rem' }}
-          title="Directly insert an editable empty row into the Excel sheet"
+          title="Insert editable row into sheet"
         >
           <span>+ Quick Row</span>
         </button>
@@ -136,7 +179,7 @@ export default function TableToolbar({
           <button 
             className="btn btn-danger btn-icon" 
             onClick={onClearTrades}
-            title="Clear all trades from sheet"
+            title="Clear all trades"
           >
             <Trash2 size={15} />
           </button>

@@ -7,30 +7,46 @@ import {
   RotateCcw, 
   Calculator,
   Wallet,
-  CheckCircle2,
-  AlertCircle
+  FileCode,
+  Keyboard
 } from 'lucide-react';
-import { exportTradesToCSV, downloadFile, parseCSVToTrades } from '../utils/exportImport';
+import { 
+  exportTradesToCSV, 
+  exportJournalToJSON, 
+  downloadFile, 
+  parseCSVToTrades 
+} from '../utils/exportImport';
 
 export default function Header({ 
   trades, 
   setTrades, 
   accountBalance, 
-  setAccountBalance, 
+  setAccountBalance,
+  equityTarget,
+  setEquityTarget,
   onOpenNewTradeModal, 
   onOpenCalculator,
+  onOpenShortcuts,
   onResetDemo 
 }) {
   const [isEditingBalance, setIsEditingBalance] = useState(false);
   const [balanceInput, setBalanceInput] = useState(accountBalance.toString());
 
-  // Quick stats calculation
+  const [isEditingTarget, setIsEditingTarget] = useState(false);
+  const [targetInput, setTargetInput] = useState((equityTarget || accountBalance * 1.2).toString());
+
   const closedTrades = trades.filter(t => t.result !== 'OPEN');
   const wins = closedTrades.filter(t => t.result === 'WIN').length;
   const winRate = closedTrades.length > 0 ? Math.round((wins / closedTrades.length) * 100) : 0;
   
   const totalPnL = trades.reduce((acc, t) => acc + (parseFloat(t.pnl) || 0), 0);
   const currentEquity = accountBalance + totalPnL;
+
+  const currentTarget = equityTarget || (accountBalance * 1.2);
+  const growthNeeded = currentTarget - accountBalance;
+  const progressPercent = growthNeeded > 0 
+    ? Math.min(100, Math.max(0, Math.round((totalPnL / growthNeeded) * 100))) 
+    : 100;
 
   const handleSaveBalance = () => {
     const val = parseFloat(balanceInput);
@@ -40,13 +56,27 @@ export default function Header({
     setIsEditingBalance(false);
   };
 
+  const handleSaveTarget = () => {
+    const val = parseFloat(targetInput);
+    if (!isNaN(val) && val > 0) {
+      setEquityTarget(val);
+    }
+    setIsEditingTarget(false);
+  };
+
   const handleExportCSV = () => {
     const csvData = exportTradesToCSV(trades);
     const dateStr = new Date().toISOString().split('T')[0];
-    downloadFile(csvData, `trading_journal_${dateStr}.csv`);
+    downloadFile(csvData, `apex_trading_journal_${dateStr}.csv`);
   };
 
-  const handleImportCSV = (e) => {
+  const handleExportJSON = () => {
+    const jsonData = exportJournalToJSON(trades, accountBalance, currentTarget);
+    const dateStr = new Date().toISOString().split('T')[0];
+    downloadFile(jsonData, `apex_journal_backup_${dateStr}.json`, 'application/json');
+  };
+
+  const handleImportFile = (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -54,12 +84,26 @@ export default function Header({
     reader.onload = (evt) => {
       const text = evt.target?.result;
       if (typeof text === 'string') {
-        const imported = parseCSVToTrades(text);
-        if (imported.length > 0) {
-          setTrades(prev => [...imported, ...prev]);
-          alert(`Successfully imported ${imported.length} trades!`);
+        if (file.name.endsWith('.json')) {
+          try {
+            const data = JSON.parse(text);
+            if (data.trades && Array.isArray(data.trades)) {
+              setTrades(data.trades);
+              if (data.accountBalance) setAccountBalance(data.accountBalance);
+              if (data.equityTarget) setEquityTarget(data.equityTarget);
+              alert(`Successfully restored full journal backup (${data.trades.length} trades)!`);
+            }
+          } catch (err) {
+            alert('Failed to parse JSON backup file: ' + err.message);
+          }
         } else {
-          alert('Could not parse any valid trades from this CSV file.');
+          const imported = parseCSVToTrades(text);
+          if (imported.length > 0) {
+            setTrades(prev => [...imported, ...prev]);
+            alert(`Successfully imported ${imported.length} trades from CSV!`);
+          } else {
+            alert('Could not parse any valid trades from this CSV file.');
+          }
         }
       }
     };
@@ -69,26 +113,24 @@ export default function Header({
 
   return (
     <header className="app-header">
-      {/* Brand */}
       <div className="brand-section">
         <div className="brand-icon">
           <TrendingUp size={22} strokeWidth={2.5} />
         </div>
         <div>
           <h1 className="brand-title">APEX JOURNAL</h1>
-          <div className="brand-subtitle">Smart Sheet & Precision Risk Terminal</div>
+          <div className="brand-subtitle">Smart Sheet & Precision Terminal</div>
         </div>
       </div>
 
-      {/* Account Overview Bar */}
       <div className="account-bar">
         <div className="account-stat">
-          <span className="account-label">Account Balance</span>
+          <span className="account-label">Starting Capital</span>
           {isEditingBalance ? (
             <input
               type="number"
               className="cell-input-inline"
-              style={{ width: '100px', borderBottom: '1px solid var(--accent-primary)' }}
+              style={{ width: '90px', borderBottom: '1px solid var(--accent-primary)' }}
               value={balanceInput}
               onChange={e => setBalanceInput(e.target.value)}
               onBlur={handleSaveBalance}
@@ -101,13 +143,13 @@ export default function Header({
               onClick={() => { setBalanceInput(accountBalance.toString()); setIsEditingBalance(true); }}
               title="Click to edit account starting balance"
             >
-              <Wallet size={15} color="var(--accent-primary)" />
+              <Wallet size={14} color="var(--accent-primary)" />
               ${accountBalance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </span>
           )}
         </div>
 
-        <div className="account-divider"></div>
+        <div className="account-divider" />
 
         <div className="account-stat">
           <span className="account-label">Total Equity</span>
@@ -116,7 +158,7 @@ export default function Header({
           </span>
         </div>
 
-        <div className="account-divider"></div>
+        <div className="account-divider" />
 
         <div className="account-stat">
           <span className="account-label">Net P&L</span>
@@ -125,40 +167,79 @@ export default function Header({
           </span>
         </div>
 
-        <div className="account-divider"></div>
+        <div className="account-divider" />
 
         <div className="account-stat">
           <span className="account-label">Win Rate</span>
           <span className="account-val" style={{ color: winRate >= 50 ? 'var(--color-win)' : 'var(--color-loss)' }}>
-            {winRate}% <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>({wins}/{closedTrades.length})</span>
+            {winRate}% <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>({wins}/{closedTrades.length})</span>
           </span>
+        </div>
+
+        <div className="account-divider" />
+
+        <div className="account-stat equity-progress-container">
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span className="account-label">Target Milestone</span>
+            {isEditingTarget ? (
+              <input
+                type="number"
+                className="cell-input-inline"
+                style={{ width: '70px', fontSize: '0.72rem' }}
+                value={targetInput}
+                onChange={e => setTargetInput(e.target.value)}
+                onBlur={handleSaveTarget}
+                onKeyDown={e => e.key === 'Enter' && handleSaveTarget()}
+                autoFocus
+              />
+            ) : (
+              <span 
+                style={{ fontSize: '0.72rem', fontFamily: 'var(--font-mono)', cursor: 'pointer', color: 'var(--text-secondary)' }}
+                onClick={() => { setTargetInput(currentTarget.toString()); setIsEditingTarget(true); }}
+                title="Click to edit Equity Target"
+              >
+                ${currentTarget.toLocaleString()} ({progressPercent}%)
+              </span>
+            )}
+          </div>
+          <div className="equity-progress-bar" title={`Target: $${currentTarget.toLocaleString()} (${progressPercent}% reached)`}>
+            <div className="equity-progress-fill" style={{ width: `${progressPercent}%` }} />
+          </div>
         </div>
       </div>
 
-      {/* Action Buttons */}
       <div className="header-actions">
-        <button className="btn btn-primary" onClick={onOpenNewTradeModal} title="Log a new trade with live auto-calculations">
+        <button className="btn btn-primary" onClick={onOpenNewTradeModal} title="Log a new trade [Hotkey: N]">
           <PlusCircle size={16} />
           <span>New Trade</span>
         </button>
 
-        <button className="btn btn-secondary" onClick={onOpenCalculator} title="Open Position Sizing Calculator">
+        <button className="btn btn-secondary" onClick={onOpenCalculator} title="Open Position Sizing Calculator [Hotkey: C]">
           <Calculator size={15} />
           <span>Calculator</span>
         </button>
 
-        <button className="btn btn-secondary" onClick={handleExportCSV} title="Export all trades to Excel/CSV">
+        <button className="btn btn-secondary" onClick={handleExportCSV} title="Export trades to CSV file">
           <Download size={15} />
-          <span>Export CSV</span>
+          <span>CSV</span>
         </button>
 
-        <label className="btn btn-secondary" title="Import trades from CSV file" style={{ margin: 0, cursor: 'pointer' }}>
+        <button className="btn btn-secondary" onClick={handleExportJSON} title="Full JSON Backup">
+          <FileCode size={15} />
+          <span>Backup</span>
+        </button>
+
+        <label className="btn btn-secondary" title="Import trades from CSV or JSON file" style={{ margin: 0, cursor: 'pointer' }}>
           <Upload size={15} />
           <span>Import</span>
-          <input type="file" accept=".csv" onChange={handleImportCSV} style={{ display: 'none' }} />
+          <input type="file" accept=".csv,.json" onChange={handleImportFile} style={{ display: 'none' }} />
         </label>
 
-        <button className="btn btn-secondary btn-icon" onClick={onResetDemo} title="Reset to realistic demo trades">
+        <button className="btn btn-secondary btn-icon" onClick={onOpenShortcuts} title="Keyboard Hotkeys [?]">
+          <Keyboard size={15} />
+        </button>
+
+        <button className="btn btn-secondary btn-icon" onClick={onResetDemo} title="Reset to demo trades">
           <RotateCcw size={15} />
         </button>
       </div>

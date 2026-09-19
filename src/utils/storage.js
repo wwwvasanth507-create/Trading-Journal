@@ -1,9 +1,9 @@
-import { SAMPLE_TRADES, INITIAL_ACCOUNT_BALANCE } from './sampleData';
-import { autoCalculateTrade } from './calculations';
+import { SAMPLE_TRADES, INITIAL_ACCOUNT_BALANCE, INITIAL_EQUITY_TARGET } from './sampleData';
 
 const STORAGE_KEYS = {
   TRADES: 'trading_journal_trades_v1',
   BALANCE: 'trading_journal_balance_v1',
+  EQUITY_TARGET: 'trading_journal_equity_target_v1',
   SETTINGS: 'trading_journal_settings_v1'
 };
 
@@ -49,10 +49,30 @@ export function saveAccountBalance(balance) {
   }
 }
 
+export function loadEquityTarget() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEYS.EQUITY_TARGET);
+    if (!raw) return INITIAL_EQUITY_TARGET;
+    const val = parseFloat(raw);
+    return isNaN(val) || val <= 0 ? INITIAL_EQUITY_TARGET : val;
+  } catch {
+    return INITIAL_EQUITY_TARGET;
+  }
+}
+
+export function saveEquityTarget(target) {
+  try {
+    localStorage.setItem(STORAGE_KEYS.EQUITY_TARGET, target.toString());
+  } catch (err) {
+    console.error('Failed to save equity target to storage', err);
+  }
+}
+
 export function resetToDemoData() {
   saveTrades(SAMPLE_TRADES);
   saveAccountBalance(INITIAL_ACCOUNT_BALANCE);
-  return { trades: SAMPLE_TRADES, balance: INITIAL_ACCOUNT_BALANCE };
+  saveEquityTarget(INITIAL_EQUITY_TARGET);
+  return { trades: SAMPLE_TRADES, balance: INITIAL_ACCOUNT_BALANCE, target: INITIAL_EQUITY_TARGET };
 }
 
 export function clearAllTrades() {
