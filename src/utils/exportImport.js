@@ -89,12 +89,14 @@ export function exportTradesToCSV(trades) {
 /**
  * Export full journal configuration (trades + account settings) to JSON
  */
-export function exportJournalToJSON(trades, accountBalance, equityTarget) {
+export function exportJournalToJSON(trades, accountBalance, milestoneTarget) {
+  const target = milestoneTarget || 500;
   const data = {
     version: '2.0.0',
     exportedAt: new Date().toISOString(),
     accountBalance,
-    equityTarget: equityTarget || accountBalance * 1.2,
+    milestoneTarget: target,
+    equityTarget: target, // backward compatibility alias for legacy backups
     tradesCount: trades.length,
     trades
   };

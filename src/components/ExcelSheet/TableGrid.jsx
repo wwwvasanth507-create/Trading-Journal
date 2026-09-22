@@ -468,13 +468,14 @@ export default function TableGrid({
                   <td style={{ textAlign: 'center' }}>
                     {t.screenshot ? (
                       <button 
+                        type="button"
                         className="thumb-btn" 
-                        onClick={() => onViewImage(t.screenshot, `${t.pair} (${t.direction})`)}
-                        onDoubleClick={() => onViewImage(t.screenshot, `${t.pair} (${t.direction})`)}
-                        title="Double-click to open enlarged view in lightbox"
+                        onClick={() => onViewImage(t.screenshot, `${t.pair} (${t.direction}) Chart`)}
+                        onDoubleClick={() => onViewImage(t.screenshot, `${t.pair} (${t.direction}) Chart`)}
+                        title="Double-click to open full image in lightbox"
                       >
-                        <img src={t.screenshot} alt="Chart" className="thumb-img" />
-                        <span style={{ fontSize: '0.72rem' }}>Inspect</span>
+                        <img src={t.screenshot} alt="Chart Thumbnail" className="thumb-img" />
+                        <span className="thumb-btn-label">Inspect</span>
                       </button>
                     ) : (
                       <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>None</span>

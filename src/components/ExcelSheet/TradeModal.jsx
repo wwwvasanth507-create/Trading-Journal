@@ -502,6 +502,8 @@ export default function TradeModal({
                   <div 
                     className="thumb-preview-wrap"
                     onClick={() => onViewImage && onViewImage(formData.screenshot, `${formData.pair || 'Trade'} Chart Screenshot`)}
+                    onDoubleClick={() => onViewImage && onViewImage(formData.screenshot, `${formData.pair || 'Trade'} Chart Screenshot`)}
+                    title="Double-click to enlarge & inspect"
                   >
                     <img 
                       src={formData.screenshot} 
