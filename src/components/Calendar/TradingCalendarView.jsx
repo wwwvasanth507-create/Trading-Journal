@@ -195,7 +195,7 @@ export default function TradingCalendarView({ trades, onEditTrade }) {
 
       {/* Selected Day Trade Drilldown */}
       {selectedDayTrades && (
-        <div className="chart-card">
+        <div className="chart-card calendar-drilldown-card">
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div className="chart-title">
               <CalendarIcon size={18} color="var(--accent-primary)" />

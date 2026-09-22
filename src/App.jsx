@@ -249,7 +249,7 @@ export default function App() {
       />
 
       {/* Content Body */}
-      <main className="main-content">
+      <main className={`main-content ${activeTab === 'calendar' ? 'calendar-page-active' : ''}`}>
         {/* VIEW 1: EXCEL SMART SHEET */}
         {activeTab === 'sheet' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>

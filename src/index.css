@@ -1067,18 +1067,43 @@ body {
   gap: 0.5rem;
 }
 
-/* Calendar View with Custom Background */
-.calendar-card {
+/* Full-Page Background for Trading Calendar Page Only */
+.main-content.calendar-page-active {
   position: relative;
+  min-height: calc(100vh - 130px);
   background-image: 
-    linear-gradient(135deg, rgba(11, 15, 25, 0.75) 0%, rgba(15, 23, 42, 0.85) 100%), 
+    linear-gradient(rgba(9, 13, 22, 0.80), rgba(9, 13, 22, 0.88)), 
     url('/photo-1595520519880-a86c48ea536c.avif');
   background-size: cover;
-  background-position: center;
+  background-position: center center;
   background-repeat: no-repeat;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  box-shadow: 0 12px 35px -10px rgba(0, 0, 0, 0.55), 0 0 25px rgba(59, 130, 246, 0.1);
+  background-attachment: fixed;
+  border-radius: 16px;
+  transition: background-image 0.3s ease;
+}
+
+@media (max-width: 768px) {
+  .main-content.calendar-page-active {
+    background-attachment: scroll; /* Smooth mobile performance */
+  }
+}
+
+.calendar-page-active .calendar-card {
+  position: relative;
+  background: rgba(15, 23, 42, 0.72);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  box-shadow: 0 16px 40px -10px rgba(0, 0, 0, 0.65), 0 0 25px rgba(59, 130, 246, 0.12);
   overflow: hidden;
+}
+
+.calendar-page-active .calendar-drilldown-card {
+  background: rgba(15, 23, 42, 0.78);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.5);
 }
 
 .calendar-summary-bar {
