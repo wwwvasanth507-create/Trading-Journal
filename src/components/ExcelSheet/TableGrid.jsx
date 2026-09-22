@@ -6,27 +6,22 @@ import {
   Trash2, 
   Copy, 
   Edit3, 
-  ExternalLink, 
-  Image as ImageIcon,
-  CheckCircle,
-  XCircle,
-  AlertCircle
+  Image as ImageIcon
 } from 'lucide-react';
 import { autoCalculateTrade } from '../../utils/calculations';
-import { SETUP_OPTIONS, TIMEFRAME_OPTIONS, MISTAKE_OPTIONS, EMOTION_OPTIONS } from '../../utils/sampleData';
+import { SETUP_OPTIONS, TIMEFRAME_OPTIONS, MISTAKE_OPTIONS, EMOTION_OPTIONS, SESSION_OPTIONS } from '../../utils/sampleData';
 
 export default function TableGrid({ 
   trades, 
   setTrades, 
   accountBalance, 
+  isCompact,
   onEditTrade, 
   onViewImage 
 }) {
   const [sortField, setSortField] = useState('tradeNum');
   const [sortOrder, setSortOrder] = useState('asc'); // 'asc' | 'desc'
-  const [editingCell, setEditingCell] = useState(null); // { id, field }
 
-  // Sorting logic
   const handleSort = (field) => {
     if (sortField === field) {
       setSortOrder(prev => prev === 'asc' ? 'desc' : 'asc');
@@ -51,7 +46,6 @@ export default function TableGrid({
       : String(bVal).localeCompare(String(aVal));
   });
 
-  // Inline cell update handler
   const handleCellChange = (tradeId, field, rawValue) => {
     setTrades(prev => prev.map(t => {
       if (t.id !== tradeId) return t;
@@ -66,7 +60,6 @@ export default function TableGrid({
         }
       }
 
-      // If user is directly typing a custom lot size, flag it so auto-calc doesn't overwrite it
       const isManualLot = field === 'lotSize';
 
       const updatedTrade = {
@@ -75,7 +68,6 @@ export default function TableGrid({
         autoCalcLot: isManualLot ? false : t.autoCalcLot
       };
 
-      // Auto-recalculate metrics
       return autoCalculateTrade(updatedTrade, accountBalance);
     }));
   };
@@ -100,7 +92,6 @@ export default function TableGrid({
     setTrades(prev => [newTrade, ...prev]);
   };
 
-  // Summary row totals
   const totalPnL = trades.reduce((acc, t) => acc + (parseFloat(t.pnl) || 0), 0);
   const closedCount = trades.filter(t => t.result !== 'OPEN').length;
   const winsCount = trades.filter(t => t.result === 'WIN').length;
@@ -110,10 +101,17 @@ export default function TableGrid({
     return sortOrder === 'asc' ? <ArrowUp size={12} color="var(--accent-primary)" /> : <ArrowDown size={12} color="var(--accent-primary)" />;
   };
 
+  const getSessionBadgeClass = (session) => {
+    if (session === 'London') return 'badge-session-london';
+    if (session === 'New York') return 'badge-session-ny';
+    if (session === 'Asian') return 'badge-session-asian';
+    return 'badge-session-overlap';
+  };
+
   return (
     <div className="sheet-wrapper">
       <div className="table-scroll-container">
-        <table className="excel-table">
+        <table className={`excel-table ${isCompact ? 'compact' : ''}`}>
           <thead>
             <tr>
               {/* Frozen Columns */}
@@ -144,6 +142,11 @@ export default function TableGrid({
                   <span>Time</span> {renderSortIcon('time')}
                 </div>
               </th>
+              <th onClick={() => handleSort('session')}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  <span>Session</span> {renderSortIcon('session')}
+                </div>
+              </th>
               <th onClick={() => handleSort('setup')}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                   <span>Setup</span> {renderSortIcon('setup')}
@@ -151,52 +154,52 @@ export default function TableGrid({
               </th>
               <th onClick={() => handleSort('timeFrame')}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                  <span>Time Frame</span> {renderSortIcon('timeFrame')}
+                  <span>TF</span> {renderSortIcon('timeFrame')}
                 </div>
               </th>
 
               {/* Auto Calculated Numeric Fields */}
-              <th onClick={() => handleSort('entryPrice')} style={{ background: '#17223b' }}>
+              <th onClick={() => handleSort('entryPrice')} style={{ background: '#131b2e' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                   <span>Entry Price ⚡</span> {renderSortIcon('entryPrice')}
                 </div>
               </th>
-              <th onClick={() => handleSort('stopLoss')} style={{ background: '#17223b' }}>
+              <th onClick={() => handleSort('stopLoss')} style={{ background: '#131b2e' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                   <span>Stop Loss ⚡</span> {renderSortIcon('stopLoss')}
                 </div>
               </th>
-              <th onClick={() => handleSort('takeProfit')} style={{ background: '#17223b' }}>
+              <th onClick={() => handleSort('takeProfit')} style={{ background: '#131b2e' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                   <span>Take Profit ⚡</span> {renderSortIcon('takeProfit')}
                 </div>
               </th>
-              <th onClick={() => handleSort('riskPercent')} style={{ background: '#17223b' }}>
+              <th onClick={() => handleSort('riskPercent')} style={{ background: '#131b2e' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                   <span>Risk % ⚡</span> {renderSortIcon('riskPercent')}
                 </div>
               </th>
-              <th onClick={() => handleSort('lotSize')} style={{ background: '#1a2744', color: '#93c5fd' }}>
+              <th onClick={() => handleSort('lotSize')} style={{ background: '#17243c', color: '#93c5fd' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                   <span>Lot Size 🤖</span> {renderSortIcon('lotSize')}
                 </div>
               </th>
-              <th onClick={() => handleSort('exitPrice')} style={{ background: '#17223b' }}>
+              <th onClick={() => handleSort('exitPrice')} style={{ background: '#131b2e' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                   <span>Exit Price ⚡</span> {renderSortIcon('exitPrice')}
                 </div>
               </th>
-              <th onClick={() => handleSort('result')} style={{ background: '#1a2744', color: '#93c5fd' }}>
+              <th onClick={() => handleSort('result')} style={{ background: '#17243c', color: '#93c5fd' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                   <span>Result 🤖</span> {renderSortIcon('result')}
                 </div>
               </th>
-              <th onClick={() => handleSort('pnl')} style={{ background: '#1a2744', color: '#93c5fd' }}>
+              <th onClick={() => handleSort('pnl')} style={{ background: '#17243c', color: '#93c5fd' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                   <span>P&L ($) 🤖</span> {renderSortIcon('pnl')}
                 </div>
               </th>
-              <th onClick={() => handleSort('plannedRR')} style={{ background: '#1a2744', color: '#93c5fd' }}>
+              <th onClick={() => handleSort('plannedRR')} style={{ background: '#17243c', color: '#93c5fd' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                   <span>R:R 🤖</span> {renderSortIcon('plannedRR')}
                 </div>
@@ -205,7 +208,7 @@ export default function TableGrid({
               {/* Psychology & Notes */}
               <th onClick={() => handleSort('ruleFollowed')}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                  <span>Rule Followed?</span> {renderSortIcon('ruleFollowed')}
+                  <span>Rules?</span> {renderSortIcon('ruleFollowed')}
                 </div>
               </th>
               <th onClick={() => handleSort('mistake')}>
@@ -229,6 +232,7 @@ export default function TableGrid({
               const isLoss = t.result === 'LOSS';
               const isBE = t.result === 'BE';
               const isOpen = t.result === 'OPEN';
+              const sessionVal = t.session || 'London';
 
               return (
                 <tr key={t.id}>
@@ -273,6 +277,17 @@ export default function TableGrid({
                     />
                   </td>
 
+                  {/* Session */}
+                  <td className="cell-editable">
+                    <select 
+                      className={`cell-input-inline badge-session ${getSessionBadgeClass(sessionVal)}`}
+                      value={sessionVal}
+                      onChange={e => handleCellChange(t.id, 'session', e.target.value)}
+                    >
+                      {SESSION_OPTIONS.map(s => <option key={s} value={s}>{s}</option>)}
+                    </select>
+                  </td>
+
                   {/* Setup */}
                   <td className="cell-editable">
                     <input 
@@ -295,7 +310,7 @@ export default function TableGrid({
                     </select>
                   </td>
 
-                  {/* Entry Price (Auto-triggers math) */}
+                  {/* Entry Price */}
                   <td className="cell-editable cell-mono" style={{ background: 'rgba(59, 130, 246, 0.03)' }}>
                     <input 
                       type="number" 
@@ -307,7 +322,7 @@ export default function TableGrid({
                     />
                   </td>
 
-                  {/* Stop Loss (Auto-triggers math) */}
+                  {/* Stop Loss */}
                   <td className="cell-editable cell-mono" style={{ background: 'rgba(59, 130, 246, 0.03)' }}>
                     <input 
                       type="number" 
@@ -319,7 +334,7 @@ export default function TableGrid({
                     />
                   </td>
 
-                  {/* Take Profit (Auto-triggers math) */}
+                  {/* Take Profit */}
                   <td className="cell-editable cell-mono" style={{ background: 'rgba(59, 130, 246, 0.03)' }}>
                     <input 
                       type="number" 
@@ -331,7 +346,7 @@ export default function TableGrid({
                     />
                   </td>
 
-                  {/* Risk % (Auto-triggers math) */}
+                  {/* Risk % */}
                   <td className="cell-editable cell-mono" style={{ background: 'rgba(59, 130, 246, 0.03)' }}>
                     <div style={{ display: 'flex', alignItems: 'center' }}>
                       <input 
@@ -346,7 +361,7 @@ export default function TableGrid({
                     </div>
                   </td>
 
-                  {/* Lot Size (Auto-Calculated by default or manual override) */}
+                  {/* Lot Size */}
                   <td className="cell-editable cell-mono" style={{ background: 'rgba(59, 130, 246, 0.07)' }}>
                     <input 
                       type="number" 
@@ -360,7 +375,7 @@ export default function TableGrid({
                     />
                   </td>
 
-                  {/* Exit Price (Auto-triggers P&L & Result) */}
+                  {/* Exit Price */}
                   <td className="cell-editable cell-mono" style={{ background: 'rgba(59, 130, 246, 0.03)' }}>
                     <input 
                       type="number" 
@@ -372,7 +387,7 @@ export default function TableGrid({
                     />
                   </td>
 
-                  {/* Result (Auto-Calculated) */}
+                  {/* Result */}
                   <td style={{ textAlign: 'center' }}>
                     {isWin && <span className="badge badge-win">WIN</span>}
                     {isLoss && <span className="badge badge-loss">LOSS</span>}
@@ -380,7 +395,7 @@ export default function TableGrid({
                     {isOpen && <span className="badge badge-open">OPEN</span>}
                   </td>
 
-                  {/* P&L ($) (Auto-Calculated or Manual) */}
+                  {/* P&L ($) */}
                   <td className="cell-editable cell-mono" style={{ textAlign: 'right' }}>
                     {t.pnl !== null && t.pnl !== undefined ? (
                       <span style={{ 
@@ -394,7 +409,7 @@ export default function TableGrid({
                     )}
                   </td>
 
-                  {/* R:R (Auto-Calculated Planned & Realized) */}
+                  {/* R:R */}
                   <td className="cell-mono" style={{ textAlign: 'center' }}>
                     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
                       <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>
@@ -512,7 +527,7 @@ export default function TableGrid({
 
             {sortedTrades.length === 0 && (
               <tr>
-                <td colSpan={22} style={{ textAlign: 'center', padding: '3rem 1rem', color: 'var(--text-muted)' }}>
+                <td colSpan={23} style={{ textAlign: 'center', padding: '3rem 1rem', color: 'var(--text-muted)' }}>
                   No trades found matching your search or filters. Click "+ Add Trade" or "+ Quick Row" to start logging.
                 </td>
               </tr>
@@ -526,7 +541,7 @@ export default function TableGrid({
                 <td colSpan={3} className="col-frozen-1" style={{ background: '#131b2e', color: 'var(--text-heading)' }}>
                   Total ({sortedTrades.length} Trades)
                 </td>
-                <td colSpan={10} style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>
+                <td colSpan={11} style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>
                   Wins: <span style={{ color: 'var(--color-win)' }}>{winsCount}</span> | Losses: <span style={{ color: 'var(--color-loss)' }}>{closedCount - winsCount}</span>
                 </td>
                 <td style={{ textAlign: 'center', color: 'var(--text-heading)' }}>
@@ -537,7 +552,7 @@ export default function TableGrid({
                     {totalPnL >= 0 ? '+' : ''}${totalPnL.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </span>
                 </td>
-                <td colSpan={6}></td>
+                <td colSpan={7}></td>
               </tr>
             </tfoot>
           )}

@@ -1,8 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { 
   X, 
-  Check, 
-  Upload, 
   TrendingUp, 
   TrendingDown, 
   Image as ImageIcon, 
@@ -14,19 +12,19 @@ import {
 import { 
   autoCalculateTrade, 
   calculateSLDistance, 
-  calculateTPDistance, 
   calculatePlannedRR, 
   calculateLotSize, 
   calculateRiskAmount,
   calculatePnL,
-  calculateRealizedRR,
-  calculateResult 
+  calculateRealizedRR 
 } from '../../utils/calculations';
 import { 
   SETUP_OPTIONS, 
   TIMEFRAME_OPTIONS, 
   MISTAKE_OPTIONS, 
-  EMOTION_OPTIONS 
+  EMOTION_OPTIONS,
+  SESSION_OPTIONS,
+  POPULAR_ASSETS 
 } from '../../utils/sampleData';
 
 export default function TradeModal({ 
@@ -38,44 +36,72 @@ export default function TradeModal({
   nextTradeNum = 1,
   onViewImage
 }) {
-  if (!isOpen) return null;
-
   const isEditing = !!(trade && trade.id);
 
-  // Initial state
-  const [formData, setFormData] = useState(() => {
-    if (isEditing) {
-      return { ...trade };
-    }
-    const today = new Date().toISOString().split('T')[0];
-    const nowTime = new Date().toTimeString().substring(0, 5);
-    return {
-      tradeNum: nextTradeNum,
-      date: today,
-      time: nowTime,
-      pair: 'EURUSD',
-      direction: 'BUY',
-      setup: 'Liquidity Sweep + FVG',
-      timeFrame: '15m',
-      entryPrice: '',
-      stopLoss: '',
-      takeProfit: '',
-      riskPercent: 1.0,
-      lotSize: '',
-      exitPrice: '',
-      result: 'OPEN',
-      pnl: '',
-      plannedRR: '',
-      realizedRR: '',
-      ruleFollowed: 'Yes',
-      mistake: 'None',
-      emotion: 'Disciplined',
-      screenshot: '',
-      lesson: ''
-    };
+  const [formData, setFormData] = useState({
+    tradeNum: nextTradeNum,
+    date: new Date().toISOString().split('T')[0],
+    time: new Date().toTimeString().substring(0, 5),
+    session: 'London',
+    pair: 'EURUSD',
+    direction: 'BUY',
+    setup: 'Liquidity Sweep + FVG',
+    timeFrame: '15m',
+    entryPrice: '',
+    stopLoss: '',
+    takeProfit: '',
+    riskPercent: 1.0,
+    lotSize: '',
+    exitPrice: '',
+    result: 'OPEN',
+    pnl: '',
+    plannedRR: '',
+    realizedRR: '',
+    ruleFollowed: 'Yes',
+    mistake: 'None',
+    emotion: 'Disciplined',
+    screenshot: '',
+    lesson: ''
   });
 
-  // Calculate live preview metrics
+  useEffect(() => {
+    if (isOpen) {
+      if (trade && trade.id) {
+        setFormData({ ...trade });
+      } else {
+        const today = new Date().toISOString().split('T')[0];
+        const nowTime = new Date().toTimeString().substring(0, 5);
+        setFormData({
+          tradeNum: nextTradeNum,
+          date: today,
+          time: nowTime,
+          session: 'London',
+          pair: 'EURUSD',
+          direction: 'BUY',
+          setup: 'Liquidity Sweep + FVG',
+          timeFrame: '15m',
+          entryPrice: '',
+          stopLoss: '',
+          takeProfit: '',
+          riskPercent: 1.0,
+          lotSize: '',
+          exitPrice: '',
+          result: 'OPEN',
+          pnl: '',
+          plannedRR: '',
+          realizedRR: '',
+          ruleFollowed: 'Yes',
+          mistake: 'None',
+          emotion: 'Disciplined',
+          screenshot: '',
+          lesson: ''
+        });
+      }
+    }
+  }, [isOpen, trade, nextTradeNum]);
+
+  if (!isOpen) return null;
+
   const entryNum = parseFloat(formData.entryPrice) || 0;
   const slNum = parseFloat(formData.stopLoss) || 0;
   const tpNum = parseFloat(formData.takeProfit) || 0;
@@ -84,33 +110,31 @@ export default function TradeModal({
   const lotNum = parseFloat(formData.lotSize) || 0;
 
   const slDist = calculateSLDistance(formData.direction, entryNum, slNum);
-  const tpDist = calculateTPDistance(formData.direction, entryNum, tpNum);
   const dollarRisk = calculateRiskAmount(accountBalance, riskPctNum);
   const plannedRR = calculatePlannedRR(formData.direction, entryNum, slNum, tpNum);
 
-  // Suggested lot size
   const suggestedLot = (slDist > 0 && dollarRisk > 0) 
     ? calculateLotSize(accountBalance, riskPctNum, formData.direction, entryNum, slNum, formData.pair)
     : null;
 
-  // Realized outcome if exit price is entered
   const livePnL = (exitNum > 0 && entryNum > 0 && (lotNum > 0 || (suggestedLot && suggestedLot > 0)))
     ? calculatePnL(formData.direction, entryNum, exitNum, lotNum > 0 ? lotNum : suggestedLot, formData.pair)
     : null;
 
-  const liveResult = exitNum > 0 ? calculateResult(exitNum, livePnL) : 'OPEN';
   const liveRealizedRR = (livePnL !== null && dollarRisk > 0)
     ? calculateRealizedRR(livePnL, dollarRisk, formData.direction, entryNum, slNum, exitNum)
     : null;
 
-  // Sync suggested lot size if user has not typed custom lot
   const handleApplySuggestedLot = () => {
     if (suggestedLot) {
       setFormData(prev => ({ ...prev, lotSize: suggestedLot }));
     }
   };
 
-  // Handle clipboard paste for screenshots
+  const handleSelectAssetPreset = (asset) => {
+    setFormData(prev => ({ ...prev, pair: asset.symbol }));
+  };
+
   const handlePaste = (e) => {
     const items = e.clipboardData?.items;
     if (!items) return;
@@ -143,7 +167,6 @@ export default function TradeModal({
   const handleSubmit = (e) => {
     e.preventDefault();
 
-    // Auto-complete fields before saving
     const finalTrade = autoCalculateTrade({
       ...formData,
       id: formData.id || 't-' + Date.now(),
@@ -163,7 +186,7 @@ export default function TradeModal({
   return (
     <div className="modal-overlay" onClick={onClose} onPaste={handlePaste}>
       <div 
-        className="modal-content" 
+        className="modal-container" 
         onClick={e => e.stopPropagation()}
         style={{ maxWidth: '840px' }}
       >
@@ -171,9 +194,9 @@ export default function TradeModal({
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
             <div 
               style={{ 
-                width: '32px', 
-                height: '32px', 
-                borderRadius: '8px', 
+                width: '36px', 
+                height: '36px', 
+                borderRadius: '10px', 
                 background: formData.direction === 'BUY' ? 'rgba(16, 185, 129, 0.2)' : 'rgba(239, 68, 68, 0.2)',
                 display: 'flex',
                 alignItems: 'center',
@@ -181,7 +204,7 @@ export default function TradeModal({
                 color: formData.direction === 'BUY' ? 'var(--color-win)' : 'var(--color-loss)'
               }}
             >
-              {formData.direction === 'BUY' ? <TrendingUp size={18} /> : <TrendingDown size={18} />}
+              {formData.direction === 'BUY' ? <TrendingUp size={20} /> : <TrendingDown size={20} />}
             </div>
             <div>
               <div className="modal-title">
@@ -243,6 +266,31 @@ export default function TradeModal({
               </div>
             </div>
 
+            {/* Risk Warning Alert */}
+            {riskPctNum > 2.5 && (
+              <div style={{ background: 'rgba(239, 68, 68, 0.1)', border: '1px solid var(--color-loss-border)', padding: '0.65rem 0.85rem', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--color-loss)', fontSize: '0.8rem' }}>
+                <AlertTriangle size={16} />
+                <span>Risk Alert: You are risking <strong>{riskPctNum}%</strong> of capital (${dollarRisk.toFixed(2)}). Standard risk parameters recommend &le; 2.0% per trade.</span>
+              </div>
+            )}
+
+            {/* Asset Quick Select Chips */}
+            <div>
+              <span className="form-label" style={{ marginBottom: '0.3rem', display: 'block' }}>Quick Pair Presets:</span>
+              <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
+                {POPULAR_ASSETS.map(asset => (
+                  <button 
+                    key={asset.symbol}
+                    type="button"
+                    className={`asset-chip ${formData.pair === asset.symbol ? 'active' : ''}`}
+                    onClick={() => handleSelectAssetPreset(asset)}
+                  >
+                    {asset.symbol}
+                  </button>
+                ))}
+              </div>
+            </div>
+
             {/* General Details */}
             <div className="form-grid">
               <div className="form-group">
@@ -250,9 +298,9 @@ export default function TradeModal({
                 <input 
                   type="date" 
                   className="form-input" 
-                  value={formData.date} 
-                  onChange={e => setFormData({ ...formData, date: e.target.value })} 
-                  required 
+                  value={formData.date || ''} 
+                  onChange={e => setFormData({ ...formData, date: e.target.value })}
+                  required
                 />
               </div>
 
@@ -261,62 +309,56 @@ export default function TradeModal({
                 <input 
                   type="time" 
                   className="form-input" 
-                  value={formData.time} 
-                  onChange={e => setFormData({ ...formData, time: e.target.value })} 
-                  required 
+                  value={formData.time || ''} 
+                  onChange={e => setFormData({ ...formData, time: e.target.value })}
                 />
               </div>
 
               <div className="form-group">
-                <label className="form-label">Pair / Asset</label>
+                <label className="form-label">Market Session</label>
+                <select 
+                  className="form-select"
+                  value={formData.session || 'London'}
+                  onChange={e => setFormData({ ...formData, session: e.target.value })}
+                >
+                  {SESSION_OPTIONS.map(s => <option key={s} value={s}>{s}</option>)}
+                </select>
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">Symbol / Pair</label>
                 <input 
                   type="text" 
                   className="form-input" 
-                  placeholder="e.g. EURUSD, XAUUSD, BTCUSDT"
-                  value={formData.pair} 
-                  onChange={e => setFormData({ ...formData, pair: e.target.value.toUpperCase() })} 
-                  required 
+                  value={formData.pair || ''} 
+                  onChange={e => setFormData({ ...formData, pair: e.target.value.toUpperCase() })}
+                  placeholder="e.g. EURUSD, XAUUSD"
+                  required
                 />
               </div>
 
               <div className="form-group">
                 <label className="form-label">Direction</label>
-                <div style={{ display: 'flex', gap: '0.5rem' }}>
-                  <button
-                    type="button"
-                    className={`btn ${formData.direction === 'BUY' ? 'btn-success' : 'btn-secondary'}`}
-                    style={{ flex: 1, padding: '0.5rem' }}
-                    onClick={() => setFormData({ ...formData, direction: 'BUY' })}
-                  >
-                    BUY / LONG
-                  </button>
-                  <button
-                    type="button"
-                    className={`btn ${formData.direction === 'SELL' ? 'btn-danger' : 'btn-secondary'}`}
-                    style={{ flex: 1, padding: '0.5rem' }}
-                    onClick={() => setFormData({ ...formData, direction: 'SELL' })}
-                  >
-                    SELL / SHORT
-                  </button>
-                </div>
+                <select 
+                  className="form-select"
+                  value={formData.direction}
+                  onChange={e => setFormData({ ...formData, direction: e.target.value })}
+                  style={{ color: formData.direction === 'BUY' ? 'var(--color-win)' : 'var(--color-loss)', fontWeight: 700 }}
+                >
+                  <option value="BUY">BUY / Long</option>
+                  <option value="SELL">SELL / Short</option>
+                </select>
               </div>
-            </div>
 
-            {/* Strategy & Timeframe */}
-            <div className="form-grid">
               <div className="form-group">
-                <label className="form-label">Setup / Strategy</label>
-                <input 
-                  type="text"
-                  list="setup-list"
-                  className="form-input"
-                  placeholder="e.g. Liquidity Sweep, Order Block"
+                <label className="form-label">Setup Model</label>
+                <select 
+                  className="form-select"
                   value={formData.setup}
                   onChange={e => setFormData({ ...formData, setup: e.target.value })}
-                />
-                <datalist id="setup-list">
-                  {SETUP_OPTIONS.map(s => <option key={s} value={s} />)}
-                </datalist>
+                >
+                  {SETUP_OPTIONS.map(s => <option key={s} value={s}>{s}</option>)}
+                </select>
               </div>
 
               <div className="form-group">
@@ -329,107 +371,104 @@ export default function TradeModal({
                   {TIMEFRAME_OPTIONS.map(tf => <option key={tf} value={tf}>{tf}</option>)}
                 </select>
               </div>
-
-              <div className="form-group">
-                <label className="form-label">Risk % (of ${accountBalance.toLocaleString()})</label>
-                <input 
-                  type="number" 
-                  step="0.1" 
-                  min="0.1" 
-                  max="100"
-                  className="form-input cell-mono" 
-                  value={formData.riskPercent} 
-                  onChange={e => setFormData({ ...formData, riskPercent: e.target.value })} 
-                  required 
-                />
-              </div>
-
-              <div className="form-group">
-                <label className="form-label">
-                  Lot Size {suggestedLot ? `(Auto: ${suggestedLot})` : ''}
-                </label>
-                <input 
-                  type="number" 
-                  step="0.01" 
-                  className="form-input cell-mono" 
-                  placeholder={suggestedLot ? suggestedLot.toString() : 'Auto or enter lot'}
-                  value={formData.lotSize} 
-                  onChange={e => setFormData({ ...formData, lotSize: e.target.value })} 
-                />
-              </div>
             </div>
 
-            {/* Price Levels (Auto-Calculates SL Dist, TP Dist, R:R) */}
-            <div className="form-grid" style={{ background: 'rgba(15, 23, 42, 0.4)', padding: '1rem', borderRadius: '10px', border: '1px solid var(--border-subtle)' }}>
-              <div className="form-group">
-                <label className="form-label">Entry Price</label>
-                <input 
-                  type="number" 
-                  step="any" 
-                  className="form-input cell-mono" 
-                  placeholder="e.g. 1.08500"
-                  value={formData.entryPrice} 
-                  onChange={e => setFormData({ ...formData, entryPrice: e.target.value })} 
-                  required 
-                />
-              </div>
-
-              <div className="form-group">
-                <label className="form-label">Stop Loss</label>
-                <input 
-                  type="number" 
-                  step="any" 
-                  className="form-input cell-mono" 
-                  placeholder="e.g. 1.08300"
-                  value={formData.stopLoss} 
-                  onChange={e => setFormData({ ...formData, stopLoss: e.target.value })} 
-                  required 
-                />
-              </div>
-
-              <div className="form-group">
-                <label className="form-label">Take Profit</label>
-                <input 
-                  type="number" 
-                  step="any" 
-                  className="form-input cell-mono" 
-                  placeholder="e.g. 1.09100"
-                  value={formData.takeProfit} 
-                  onChange={e => setFormData({ ...formData, takeProfit: e.target.value })} 
-                  required 
-                />
-              </div>
-
-              <div className="form-group">
-                <label className="form-label">Exit Price (Leave blank if open)</label>
-                <input 
-                  type="number" 
-                  step="any" 
-                  className="form-input cell-mono" 
-                  placeholder="Actual Exit Price"
-                  value={formData.exitPrice} 
-                  onChange={e => setFormData({ ...formData, exitPrice: e.target.value })} 
-                />
-              </div>
-            </div>
-
-            {/* Psychology & Discipline (Global Benchmark Standard) */}
+            {/* Entry, SL, TP, Risk */}
             <div className="form-grid">
               <div className="form-group">
-                <label className="form-label">Rule Followed?</label>
+                <label className="form-label">Entry Price ⚡</label>
+                <input 
+                  type="number" 
+                  step="any"
+                  className="form-input cell-mono" 
+                  value={formData.entryPrice} 
+                  onChange={e => setFormData({ ...formData, entryPrice: e.target.value })}
+                  placeholder="1.08200"
+                  required
+                />
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">Stop Loss Price ⚡</label>
+                <input 
+                  type="number" 
+                  step="any"
+                  className="form-input cell-mono" 
+                  value={formData.stopLoss} 
+                  onChange={e => setFormData({ ...formData, stopLoss: e.target.value })}
+                  placeholder="1.08050"
+                  required
+                />
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">Take Profit Price ⚡</label>
+                <input 
+                  type="number" 
+                  step="any"
+                  className="form-input cell-mono" 
+                  value={formData.takeProfit} 
+                  onChange={e => setFormData({ ...formData, takeProfit: e.target.value })}
+                  placeholder="1.08650"
+                  required
+                />
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">Risk Percentage (%) ⚡</label>
+                <input 
+                  type="number" 
+                  step="0.1"
+                  className="form-input cell-mono" 
+                  value={formData.riskPercent} 
+                  onChange={e => setFormData({ ...formData, riskPercent: e.target.value })}
+                  placeholder="1.0"
+                  required
+                />
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">Position Lot Size (Override)</label>
+                <input 
+                  type="number" 
+                  step="0.01"
+                  className="form-input cell-mono" 
+                  value={formData.lotSize} 
+                  onChange={e => setFormData({ ...formData, lotSize: e.target.value })}
+                  placeholder={suggestedLot ? `Auto: ${suggestedLot}` : 'e.g. 0.5'}
+                />
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">Exit Price (Leave empty if open)</label>
+                <input 
+                  type="number" 
+                  step="any"
+                  className="form-input cell-mono" 
+                  value={formData.exitPrice} 
+                  onChange={e => setFormData({ ...formData, exitPrice: e.target.value })}
+                  placeholder="Optional exit price"
+                />
+              </div>
+            </div>
+
+            {/* Psychology & Rules */}
+            <div className="form-grid">
+              <div className="form-group">
+                <label className="form-label">Did you follow trading rules?</label>
                 <select 
                   className="form-select"
                   value={formData.ruleFollowed}
                   onChange={e => setFormData({ ...formData, ruleFollowed: e.target.value })}
                 >
-                  <option value="Yes">Yes (Disciplined 100%)</option>
-                  <option value="No">No (Violated Strategy)</option>
-                  <option value="Partial">Partial (Slight deviation)</option>
+                  <option value="Yes">Yes — Plan Followed Perfectly</option>
+                  <option value="No">No — Violated Strategy Rules</option>
+                  <option value="Partial">Partial — Minor Hesitation / Adjustment</option>
                 </select>
               </div>
 
               <div className="form-group">
-                <label className="form-label">Mistake</label>
+                <label className="form-label">Execution Mistake</label>
                 <select 
                   className="form-select"
                   value={formData.mistake}
@@ -440,7 +479,7 @@ export default function TradeModal({
               </div>
 
               <div className="form-group">
-                <label className="form-label">Emotion</label>
+                <label className="form-label">Emotional State</label>
                 <select 
                   className="form-select"
                   value={formData.emotion}
@@ -451,7 +490,7 @@ export default function TradeModal({
               </div>
             </div>
 
-            {/* Screenshot Dropzone & Paste */}
+            {/* Screenshot Paste / Upload */}
             <div className="form-group">
               <label className="form-label">Chart Screenshot (Paste Ctrl+V or Upload)</label>
               {formData.screenshot ? (
@@ -499,27 +538,39 @@ export default function TradeModal({
                   </div>
                 </div>
               ) : (
-                <label className="dropzone">
+                <div 
+                  className="dropzone"
+                  onClick={() => document.getElementById('screenshot-upload')?.click()}
+                >
                   <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.4rem' }}>
                     <ImageIcon size={24} color="var(--accent-primary)" />
-                    <span style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
-                      Click to upload image, or press <strong>Ctrl+V</strong> anywhere to paste screenshot
+                    <span style={{ fontSize: '0.85rem', color: 'var(--text-primary)' }}>
+                      Paste screenshot directly anywhere in this modal or click to browse
+                    </span>
+                    <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                      Supports PNG, JPG, WebP, SVG
                     </span>
                   </div>
-                  <input type="file" accept="image/*" onChange={handleFileUpload} style={{ display: 'none' }} />
-                </label>
+                  <input 
+                    id="screenshot-upload"
+                    type="file" 
+                    accept="image/*" 
+                    onChange={handleFileUpload} 
+                    style={{ display: 'none' }} 
+                  />
+                </div>
               )}
             </div>
 
-            {/* Lesson & Notes */}
+            {/* Lessons Learned */}
             <div className="form-group">
-              <label className="form-label">Lesson / Post-Trade Takeaway</label>
+              <label className="form-label">Lesson & Trade Notes</label>
               <textarea 
                 className="form-textarea" 
-                rows={2} 
-                placeholder="What did you learn? What would you do differently next time?"
-                value={formData.lesson}
+                rows={2}
+                value={formData.lesson} 
                 onChange={e => setFormData({ ...formData, lesson: e.target.value })}
+                placeholder="What did you do well? What could be improved for next time?"
               />
             </div>
 
@@ -530,8 +581,7 @@ export default function TradeModal({
               Cancel
             </button>
             <button type="submit" className="btn btn-primary">
-              <Check size={16} />
-              <span>{isEditing ? 'Save Changes' : 'Log Trade'}</span>
+              {isEditing ? 'Update Trade' : 'Save Trade'}
             </button>
           </div>
         </form>

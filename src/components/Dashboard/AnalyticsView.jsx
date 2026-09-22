@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { 
   TrendingUp, 
-  TrendingDown, 
   Award, 
   Target, 
   Flag,
@@ -10,16 +9,18 @@ import {
   ShieldAlert, 
   BarChart3, 
   Layers, 
-  ArrowUpRight, 
-  ArrowDownRight,
+  Globe,
   CheckCircle2
 } from 'lucide-react';
 import { calculateMilestoneProgress } from '../../utils/calculations';
 
-export default function AnalyticsView({ trades, accountBalance, milestoneTarget = 500, setMilestoneTarget }) {
+export default function AnalyticsView({ trades, accountBalance, milestoneTarget = 500, setMilestoneTarget, equityTarget, setEquityTarget }) {
+  const activeMilestone = milestoneTarget || equityTarget || 500;
+  const updateMilestone = setMilestoneTarget || setEquityTarget;
+
   const [hoveredPoint, setHoveredPoint] = useState(null);
   const [isEditingTarget, setIsEditingTarget] = useState(false);
-  const [targetInput, setTargetInput] = useState(milestoneTarget.toString());
+  const [targetInput, setTargetInput] = useState(activeMilestone.toString());
 
   // Closed trades sorted by date/time
   const closedTrades = trades
@@ -42,14 +43,11 @@ export default function AnalyticsView({ trades, accountBalance, milestoneTarget 
 
   const avgWin = wins.length > 0 ? totalGrossProfit / wins.length : 0;
   const avgLoss = losses.length > 0 ? totalGrossLoss / losses.length : 0;
-  const winLossRatio = avgLoss > 0 ? (avgWin / avgLoss).toFixed(2) : '—';
 
-  // Expectancy = (Win% * AvgWin) - (Loss% * AvgLoss)
   const expectancy = totalClosed > 0 
     ? ((wins.length / totalClosed) * avgWin) - ((losses.length / totalClosed) * avgLoss)
     : 0;
 
-  // Compute Cumulative Equity Points for Chart
   let cumulative = 0;
   let peak = 0;
   let maxDrawdown = 0;
@@ -76,7 +74,6 @@ export default function AnalyticsView({ trades, accountBalance, milestoneTarget 
     });
   });
 
-  // SVG Chart Dimensions
   const chartWidth = 700;
   const chartHeight = 240;
   const padding = { top: 25, right: 30, bottom: 35, left: 60 };
@@ -94,7 +91,6 @@ export default function AnalyticsView({ trades, accountBalance, milestoneTarget 
     return chartHeight - padding.bottom - ((val - minCum) / cumRange) * (chartHeight - padding.top - padding.bottom);
   };
 
-  // Generate SVG Path
   const zeroY = getY(0);
   const pathD = equityPoints.map((pt, idx) => `${idx === 0 ? 'M' : 'L'} ${getX(idx)} ${getY(pt.cumulative)}`).join(' ');
   const areaD = `${pathD} L ${getX(equityPoints.length - 1)} ${zeroY} L ${getX(0)} ${zeroY} Z`;
@@ -123,13 +119,25 @@ export default function AnalyticsView({ trades, accountBalance, milestoneTarget 
 
   const pairList = Object.entries(pairStats).sort((a, b) => b[1].pnl - a[1].pnl);
 
+  // Performance by Market Session
+  const sessionStats = {};
+  closedTrades.forEach(t => {
+    const sess = t.session || 'London';
+    if (!sessionStats[sess]) sessionStats[sess] = { count: 0, pnl: 0, wins: 0 };
+    sessionStats[sess].count += 1;
+    sessionStats[sess].pnl += (parseFloat(t.pnl) || 0);
+    if (t.result === 'WIN') sessionStats[sess].wins += 1;
+  });
+
+  const sessionList = Object.entries(sessionStats).sort((a, b) => b[1].pnl - a[1].pnl);
+
   // Compute Milestone Progress (Strictly Net P&L vs Milestone Target - Starting Capital is NEVER added)
-  const milestoneProgress = calculateMilestoneProgress(netPnL, milestoneTarget);
+  const milestoneProgress = calculateMilestoneProgress(netPnL, activeMilestone);
 
   const handleSaveTarget = () => {
     const val = parseFloat(targetInput);
-    if (!isNaN(val) && val > 0 && setMilestoneTarget) {
-      setMilestoneTarget(val);
+    if (!isNaN(val) && val > 0 && updateMilestone) {
+      updateMilestone(val);
     }
     setIsEditingTarget(false);
   };
@@ -138,7 +146,6 @@ export default function AnalyticsView({ trades, accountBalance, milestoneTarget 
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
       {/* KPI Cards Grid */}
       <div className="kpi-grid">
-        {/* Net P&L */}
         <div className="kpi-card">
           <div className="kpi-header">
             <span>Net Realized P&L</span>
@@ -177,10 +184,10 @@ export default function AnalyticsView({ trades, accountBalance, milestoneTarget 
             ) : (
               <span 
                 className="editable" 
-                onClick={() => { setTargetInput(milestoneTarget.toString()); setIsEditingTarget(true); }}
+                onClick={() => { setTargetInput(activeMilestone.toString()); setIsEditingTarget(true); }}
                 title="Click to edit milestone target amount (e.g. $500, separate from starting capital)"
               >
-                ${milestoneTarget.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                ${activeMilestone.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </span>
             )}
             {milestoneProgress.isAchieved && (
@@ -206,7 +213,6 @@ export default function AnalyticsView({ trades, accountBalance, milestoneTarget 
           </div>
         </div>
 
-        {/* Win Rate */}
         <div className="kpi-card">
           <div className="kpi-header">
             <span>Win Rate</span>
@@ -222,7 +228,6 @@ export default function AnalyticsView({ trades, accountBalance, milestoneTarget 
           </div>
         </div>
 
-        {/* Profit Factor */}
         <div className="kpi-card">
           <div className="kpi-header">
             <span>Profit Factor</span>
@@ -238,7 +243,6 @@ export default function AnalyticsView({ trades, accountBalance, milestoneTarget 
           </div>
         </div>
 
-        {/* Trade Expectancy */}
         <div className="kpi-card">
           <div className="kpi-header">
             <span>Expectancy / Trade</span>
@@ -254,7 +258,6 @@ export default function AnalyticsView({ trades, accountBalance, milestoneTarget 
           </div>
         </div>
 
-        {/* Max Drawdown */}
         <div className="kpi-card">
           <div className="kpi-header">
             <span>Max Drawdown</span>
@@ -271,7 +274,7 @@ export default function AnalyticsView({ trades, accountBalance, milestoneTarget 
         </div>
       </div>
 
-      {/* Visual Win / Loss Distribution Bar */}
+      {/* Outcome Bar */}
       <div className="chart-card">
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div className="chart-title">
@@ -291,12 +294,12 @@ export default function AnalyticsView({ trades, accountBalance, milestoneTarget 
         </div>
       </div>
 
-      {/* Cumulative Equity Curve Chart */}
+      {/* Cumulative Equity Curve */}
       <div className="chart-card">
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div className="chart-title">
             <TrendingUp size={18} color="var(--accent-primary)" />
-            <span>Cumulative Equity Curve (Realized Account Growth)</span>
+            <span>Cumulative Realized Growth ($)</span>
           </div>
           {hoveredPoint && (
             <div style={{ background: 'var(--bg-secondary)', padding: '4px 10px', borderRadius: '6px', border: '1px solid var(--border-card)', fontSize: '0.8rem', fontFamily: 'var(--font-mono)' }}>
@@ -309,7 +312,6 @@ export default function AnalyticsView({ trades, accountBalance, milestoneTarget 
           )}
         </div>
 
-        {/* SVG Equity Chart */}
         <div style={{ width: '100%', overflowX: 'auto' }}>
           <svg 
             viewBox={`0 0 ${chartWidth} ${chartHeight}`} 
@@ -322,7 +324,6 @@ export default function AnalyticsView({ trades, accountBalance, milestoneTarget 
               </linearGradient>
             </defs>
 
-            {/* Zero Line */}
             <line 
               x1={padding.left} 
               y1={zeroY} 
@@ -342,7 +343,6 @@ export default function AnalyticsView({ trades, accountBalance, milestoneTarget 
               $0
             </text>
 
-            {/* Top / Bottom Reference lines */}
             <text 
               x={padding.left - 8} 
               y={padding.top + 4} 
@@ -366,12 +366,10 @@ export default function AnalyticsView({ trades, accountBalance, milestoneTarget 
               </text>
             )}
 
-            {/* Shaded Area */}
             {equityPoints.length > 1 && (
               <path d={areaD} fill="url(#equityGrad)" />
             )}
 
-            {/* Main Equity Line */}
             {equityPoints.length > 1 && (
               <path 
                 d={pathD} 
@@ -383,7 +381,6 @@ export default function AnalyticsView({ trades, accountBalance, milestoneTarget 
               />
             )}
 
-            {/* Data Points */}
             {equityPoints.map((pt, idx) => {
               if (idx === 0) return null;
               const cx = getX(idx);
@@ -407,7 +404,7 @@ export default function AnalyticsView({ trades, accountBalance, milestoneTarget 
         </div>
       </div>
 
-      {/* Breakdowns: Setups & Pairs */}
+      {/* Breakdowns: Setups, Pairs, & Sessions */}
       <div className="analytics-grid">
         {/* Setup Performance */}
         <div className="chart-card">
@@ -443,29 +440,56 @@ export default function AnalyticsView({ trades, accountBalance, milestoneTarget 
           </div>
         </div>
 
-        {/* Pair Performance */}
-        <div className="chart-card">
-          <div className="chart-title">
-            <BarChart3 size={18} color="var(--accent-primary)" />
-            <span>Asset / Pair Leaderboard</span>
+        {/* Market Session & Pair Breakdown */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+          <div className="chart-card">
+            <div className="chart-title">
+              <Globe size={18} color="var(--accent-primary)" />
+              <span>Performance by Session</span>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+              {sessionList.map(([sessName, data]) => {
+                const sessWinRate = data.count > 0 ? Math.round((data.wins / data.count) * 100) : 0;
+                const isProfit = data.pnl >= 0;
+                return (
+                  <div key={sessName} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.55rem 0.75rem', background: 'var(--bg-secondary)', borderRadius: '8px', border: '1px solid var(--border-subtle)' }}>
+                    <div>
+                      <span style={{ fontWeight: 700, fontSize: '0.88rem' }}>{sessName} Session</span>
+                      <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>{data.count} trades · {sessWinRate}% win</div>
+                    </div>
+                    <div style={{ fontFamily: 'var(--font-mono)', fontWeight: 700, color: isProfit ? 'var(--color-win)' : 'var(--color-loss)' }}>
+                      {isProfit ? '+' : ''}${data.pnl.toFixed(2)}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           </div>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
-            {pairList.map(([pairName, data]) => {
-              const pairWinRate = data.count > 0 ? Math.round((data.wins / data.count) * 100) : 0;
-              const isProfit = data.pnl >= 0;
-              return (
-                <div key={pairName} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.5rem 0.75rem', background: 'var(--bg-secondary)', borderRadius: '8px', border: '1px solid var(--border-subtle)' }}>
-                  <div>
-                    <span style={{ fontWeight: 700, letterSpacing: '0.02em' }}>{pairName}</span>
-                    <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>{data.count} trades · {pairWinRate}% win</div>
+          <div className="chart-card">
+            <div className="chart-title">
+              <BarChart3 size={18} color="var(--accent-primary)" />
+              <span>Asset Leaderboard</span>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+              {pairList.map(([pairName, data]) => {
+                const pairWinRate = data.count > 0 ? Math.round((data.wins / data.count) * 100) : 0;
+                const isProfit = data.pnl >= 0;
+                return (
+                  <div key={pairName} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.55rem 0.75rem', background: 'var(--bg-secondary)', borderRadius: '8px', border: '1px solid var(--border-subtle)' }}>
+                    <div>
+                      <span style={{ fontWeight: 700, letterSpacing: '0.02em' }}>{pairName}</span>
+                      <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>{data.count} trades · {pairWinRate}% win</div>
+                    </div>
+                    <div style={{ fontFamily: 'var(--font-mono)', fontWeight: 700, color: isProfit ? 'var(--color-win)' : 'var(--color-loss)' }}>
+                      {isProfit ? '+' : ''}${data.pnl.toFixed(2)}
+                    </div>
                   </div>
-                  <div style={{ fontFamily: 'var(--font-mono)', fontWeight: 700, color: isProfit ? 'var(--color-win)' : 'var(--color-loss)' }}>
-                    {isProfit ? '+' : ''}${data.pnl.toFixed(2)}
-                  </div>
-                </div>
-              );
-            })}
+                );
+              })}
+            </div>
           </div>
         </div>
       </div>

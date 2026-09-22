@@ -1,12 +1,13 @@
 /**
  * Export and Import Utilities for Trading Journal
- * Supports CSV export/import and full JSON backup
+ * Supports CSV export/import and full JSON backup/restore
  */
 
 export const HEADINGS = [
   'Trade#',
   'Date',
   'Time',
+  'Session',
   'Pair',
   'Direction',
   'Setup',
@@ -36,6 +37,7 @@ export function exportTradesToCSV(trades) {
     const tradeNum = t.tradeNum || idx + 1;
     const date = t.date || '';
     const time = t.time || '';
+    const session = t.session || 'London';
     const pair = t.pair || '';
     const direction = t.direction || 'BUY';
     const setup = `"${(t.setup || '').replace(/"/g, '""')}"`;
@@ -52,7 +54,6 @@ export function exportTradesToCSV(trades) {
     const ruleFollowed = t.ruleFollowed || 'Yes';
     const mistake = `"${(t.mistake || 'None').replace(/"/g, '""')}"`;
     const emotion = t.emotion || 'Disciplined';
-    // Screenshot: if data URI, write [Image Attached] to keep CSV clean, or URL
     const screenshot = t.screenshot ? (t.screenshot.startsWith('data:') ? '[Chart Image Attached]' : t.screenshot) : '';
     const lesson = `"${(t.lesson || '').replace(/"/g, '""')}"`;
 
@@ -60,6 +61,7 @@ export function exportTradesToCSV(trades) {
       tradeNum,
       date,
       time,
+      session,
       pair,
       direction,
       setup,
@@ -85,6 +87,21 @@ export function exportTradesToCSV(trades) {
 }
 
 /**
+ * Export full journal configuration (trades + account settings) to JSON
+ */
+export function exportJournalToJSON(trades, accountBalance, equityTarget) {
+  const data = {
+    version: '2.0.0',
+    exportedAt: new Date().toISOString(),
+    accountBalance,
+    equityTarget: equityTarget || accountBalance * 1.2,
+    tradesCount: trades.length,
+    trades
+  };
+  return JSON.stringify(data, null, 2);
+}
+
+/**
  * Trigger browser file download
  */
 export function downloadFile(content, fileName, mimeType = 'text/csv;charset=utf-8;') {
@@ -106,7 +123,6 @@ export function parseCSVToTrades(csvText) {
   const lines = csvText.split(/\r?\n/).filter(line => line.trim() !== '');
   if (lines.length < 2) return [];
 
-  // Parse rows with quote handling
   const parseRow = (text) => {
     const re = /(?!\s*$)\s*(?:'([^'\\]*(?:\\[\S\s][^'\\]*)*)'|"([^"\\]*(?:\\[\S\s][^"\\]*)*)"|([^,'"\s\\/]*(?:\s+[^,'"\s\\/]+)*))\s*(?:,|$)/g;
     const a = [];
@@ -129,24 +145,25 @@ export function parseCSVToTrades(csvText) {
       tradeNum: parseInt(cols[0], 10) || i,
       date: cols[1] || new Date().toISOString().split('T')[0],
       time: cols[2] || '09:00',
-      pair: cols[3] || 'UNKNOWN',
-      direction: (cols[4] || 'BUY').toUpperCase(),
-      setup: cols[5] || 'General',
-      timeFrame: cols[6] || '15m',
-      entryPrice: parseFloat(cols[7]) || 0,
-      stopLoss: parseFloat(cols[8]) || 0,
-      takeProfit: parseFloat(cols[9]) || 0,
-      riskPercent: parseFloat((cols[10] || '1').replace('%', '')) || 1,
-      lotSize: parseFloat(cols[11]) || 0.1,
-      exitPrice: cols[12] ? parseFloat(cols[12]) : '',
-      result: cols[13] || 'OPEN',
-      pnl: cols[14] ? parseFloat(cols[14]) : null,
-      plannedRR: parseFloat((cols[15] || '').replace('1:', '')) || null,
-      ruleFollowed: cols[16] || 'Yes',
-      mistake: cols[17] || 'None',
-      emotion: cols[18] || 'Disciplined',
-      screenshot: cols[19] && !cols[19].includes('[Chart') ? cols[19] : '',
-      lesson: cols[20] || ''
+      session: cols[3] || 'London',
+      pair: cols[4] || cols[3] || 'UNKNOWN',
+      direction: (cols[5] || cols[4] || 'BUY').toUpperCase(),
+      setup: cols[6] || cols[5] || 'General',
+      timeFrame: cols[7] || cols[6] || '15m',
+      entryPrice: parseFloat(cols[8] || cols[7]) || 0,
+      stopLoss: parseFloat(cols[9] || cols[8]) || 0,
+      takeProfit: parseFloat(cols[10] || cols[9]) || 0,
+      riskPercent: parseFloat((cols[11] || cols[10] || '1').replace('%', '')) || 1,
+      lotSize: parseFloat(cols[12] || cols[11]) || 0.1,
+      exitPrice: cols[13] || cols[12] ? parseFloat(cols[13] || cols[12]) : '',
+      result: cols[14] || cols[13] || 'OPEN',
+      pnl: cols[15] || cols[14] ? parseFloat(cols[15] || cols[14]) : null,
+      plannedRR: parseFloat((cols[16] || cols[15] || '').replace('1:', '')) || null,
+      ruleFollowed: cols[17] || cols[16] || 'Yes',
+      mistake: cols[18] || cols[17] || 'None',
+      emotion: cols[19] || cols[18] || 'Disciplined',
+      screenshot: cols[20] && !cols[20].includes('[Chart') ? cols[20] : '',
+      lesson: cols[21] || cols[20] || ''
     });
   }
 

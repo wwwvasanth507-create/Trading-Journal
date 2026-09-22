@@ -10,6 +10,7 @@ import AnalyticsView from './components/Dashboard/AnalyticsView';
 import PsychologyAuditView from './components/Psychology/PsychologyAuditView';
 import TradingCalendarView from './components/Calendar/TradingCalendarView';
 import RiskCalculatorModal from './components/Calculator/RiskCalculatorModal';
+import KeyboardShortcutsModal from './components/KeyboardShortcutsModal';
 import { 
   loadTrades, 
   saveTrades, 
@@ -27,6 +28,7 @@ export default function App() {
   const [accountBalance, setAccountBalance] = useState(() => loadAccountBalance());
   const [milestoneTarget, setMilestoneTarget] = useState(() => loadMilestoneTarget());
   const [activeTab, setActiveTab] = useState('sheet');
+  const [isCompact, setIsCompact] = useState(false);
 
   // Search & Filter State
   const [searchQuery, setSearchQuery] = useState('');
@@ -34,6 +36,7 @@ export default function App() {
     result: 'ALL',
     direction: 'ALL',
     setup: 'ALL',
+    session: 'ALL',
     timeFrame: 'ALL',
     ruleFollowed: 'ALL'
   });
@@ -42,9 +45,10 @@ export default function App() {
   const [isTradeModalOpen, setIsTradeModalOpen] = useState(false);
   const [editingTrade, setEditingTrade] = useState(null);
   const [isCalculatorOpen, setIsCalculatorOpen] = useState(false);
-  const [viewingImage, setViewingImage] = useState(null); // { url, title }
+  const [isShortcutsOpen, setIsShortcutsOpen] = useState(false);
+  const [viewingImage, setViewingImage] = useState(null);
 
-  // Auto-save to LocalStorage whenever trades, balance, or milestoneTarget change
+  // Persistence Effects
   useEffect(() => {
     saveTrades(trades);
   }, [trades]);
@@ -57,28 +61,65 @@ export default function App() {
     saveMilestoneTarget(milestoneTarget);
   }, [milestoneTarget]);
 
+  // Global Keyboard Shortcuts Listener (N, C, 1, 2, 3, 4, ?, Esc)
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      // Don't trigger hotkeys if user is typing in an input/textarea
+      const tag = document.activeElement?.tagName.toLowerCase();
+      if (tag === 'input' || tag === 'textarea' || tag === 'select') {
+        if (e.key === 'Escape') {
+          document.activeElement.blur();
+        }
+        return;
+      }
+
+      if (e.key === 'n' || e.key === 'N') {
+        e.preventDefault();
+        setEditingTrade(null);
+        setIsTradeModalOpen(true);
+      } else if (e.key === 'c' || e.key === 'C') {
+        e.preventDefault();
+        setIsCalculatorOpen(true);
+      } else if (e.key === '?' || (e.shiftKey && e.key === '/')) {
+        e.preventDefault();
+        setIsShortcutsOpen(prev => !prev);
+      } else if (e.key === '1') {
+        setActiveTab('sheet');
+      } else if (e.key === '2') {
+        setActiveTab('analytics');
+      } else if (e.key === '3') {
+        setActiveTab('psychology');
+      } else if (e.key === '4') {
+        setActiveTab('calendar');
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
   // Next trade sequence number
   const nextTradeNum = trades.reduce((max, t) => Math.max(max, t.tradeNum || 0), 0) + 1;
 
   // Filter & Search matching
   const filteredTrades = trades.filter(t => {
-    // Search Query across Pair, Setup, Mistake, Emotion, Lesson
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
       const matchPair = (t.pair || '').toLowerCase().includes(q);
       const matchSetup = (t.setup || '').toLowerCase().includes(q);
+      const matchSession = (t.session || '').toLowerCase().includes(q);
       const matchMistake = (t.mistake || '').toLowerCase().includes(q);
       const matchEmotion = (t.emotion || '').toLowerCase().includes(q);
       const matchLesson = (t.lesson || '').toLowerCase().includes(q);
-      if (!matchPair && !matchSetup && !matchMistake && !matchEmotion && !matchLesson) {
+      if (!matchPair && !matchSetup && !matchSession && !matchMistake && !matchEmotion && !matchLesson) {
         return false;
       }
     }
 
-    // Filters
     if (filters.result !== 'ALL' && t.result !== filters.result) return false;
     if (filters.direction !== 'ALL' && t.direction !== filters.direction) return false;
     if (filters.setup !== 'ALL' && t.setup !== filters.setup) return false;
+    if (filters.session !== 'ALL' && t.session !== filters.session) return false;
     if (filters.timeFrame !== 'ALL' && t.timeFrame !== filters.timeFrame) return false;
     if (filters.ruleFollowed !== 'ALL' && t.ruleFollowed !== filters.ruleFollowed) return false;
 
@@ -87,7 +128,7 @@ export default function App() {
 
   // Save or Update Trade from Modal
   const handleSaveTrade = (savedTrade) => {
-    if (editingTrade) {
+    if (editingTrade && editingTrade.id) {
       setTrades(prev => prev.map(t => t.id === savedTrade.id ? savedTrade : t));
     } else {
       setTrades(prev => [savedTrade, ...prev]);
@@ -110,6 +151,7 @@ export default function App() {
       tradeNum: nextTradeNum,
       date: today,
       time: nowTime,
+      session: 'London',
       pair: 'EURUSD',
       direction: 'BUY',
       setup: 'New Setup',
@@ -146,10 +188,10 @@ export default function App() {
 
   const handleResetDemo = () => {
     if (window.confirm('Reset all trades to default demo data? Your current trades will be replaced.')) {
-      const { trades: newTrades, balance, milestoneTarget: newTarget } = resetToDemoData();
+      const { trades: newTrades, balance, milestoneTarget: newTarget, target } = resetToDemoData();
       setTrades(newTrades);
       setAccountBalance(balance);
-      if (newTarget !== undefined) setMilestoneTarget(newTarget);
+      setMilestoneTarget(newTarget || target || 500);
     }
   };
 
@@ -167,6 +209,7 @@ export default function App() {
       tradeNum: nextTradeNum,
       date: today,
       time: nowTime,
+      session: 'London',
       setup: 'Calculated Setup',
       timeFrame: '15m',
       ruleFollowed: 'Yes',
@@ -178,6 +221,8 @@ export default function App() {
     });
     setIsTradeModalOpen(true);
   };
+
+  const closedTradesCount = trades.filter(t => t.result !== 'OPEN').length;
 
   return (
     <div className="app-container">
@@ -191,6 +236,7 @@ export default function App() {
         setMilestoneTarget={setMilestoneTarget}
         onOpenNewTradeModal={handleOpenNewTrade}
         onOpenCalculator={() => setIsCalculatorOpen(true)}
+        onOpenShortcuts={() => setIsShortcutsOpen(true)}
         onResetDemo={handleResetDemo}
       />
 
@@ -198,6 +244,8 @@ export default function App() {
       <Navigation 
         activeTab={activeTab} 
         setActiveTab={setActiveTab} 
+        totalTrades={trades.length}
+        closedTradesCount={closedTradesCount}
       />
 
       {/* Content Body */}
@@ -210,6 +258,8 @@ export default function App() {
               setSearchQuery={setSearchQuery}
               filters={filters}
               setFilters={setFilters}
+              isCompact={isCompact}
+              setIsCompact={setIsCompact}
               onAddTrade={handleOpenNewTrade}
               onAddInlineRow={handleAddInlineRow}
               totalTrades={trades.length}
@@ -221,6 +271,7 @@ export default function App() {
               trades={filteredTrades}
               setTrades={setTrades}
               accountBalance={accountBalance}
+              isCompact={isCompact}
               onEditTrade={handleEditTrade}
               onViewImage={(url, title) => setViewingImage({ url, title })}
             />
@@ -253,7 +304,7 @@ export default function App() {
         )}
       </main>
 
-      {/* Modal: Add/Edit Trade with live auto-calculations */}
+      {/* Modal: Add/Edit Trade */}
       <TradeModal 
         isOpen={isTradeModalOpen}
         trade={editingTrade}
@@ -277,6 +328,12 @@ export default function App() {
         accountBalance={accountBalance}
         onClose={() => setIsCalculatorOpen(false)}
         onApplyToNewTrade={handleApplyFromCalculator}
+      />
+
+      {/* Modal: Keyboard Shortcuts Helper */}
+      <KeyboardShortcutsModal
+        isOpen={isShortcutsOpen}
+        onClose={() => setIsShortcutsOpen(false)}
       />
     </div>
   );

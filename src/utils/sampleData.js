@@ -1,9 +1,7 @@
 /**
- * Realistic Sample Data for Trading Journal
- * Includes Forex, Crypto, Commodities, and Stocks
+ * Realistic Sample Data & Preset Constants for APEX Trading Journal
  */
 
-// Simple lightweight SVG data URIs for chart screenshots so user has instant visual examples
 const CHART_SVG_WIN = `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="600" height="300" viewBox="0 0 600 300" fill="%230f172a"><rect width="100%" height="100%" fill="%230b0f19"/><path d="M50,220 L120,200 L180,240 L260,160 L340,180 L420,90 L520,60" fill="none" stroke="%2310b981" stroke-width="4"/><line x1="50" y1="160" x2="550" y2="160" stroke="%23334155" stroke-dasharray="4"/><text x="60" y="50" fill="%2310b981" font-family="sans-serif" font-size="16" font-weight="bold">BULLISH BREAKOUT + FVG (TP HIT +2.8R)</text><circle cx="260" cy="160" r="6" fill="%233b82f6"/><text x="270" y="155" fill="%2393c5fd" font-family="sans-serif" font-size="12">Entry</text><circle cx="520" cy="60" r="6" fill="%2310b981"/><text x="500" y="45" fill="%2386efac" font-family="sans-serif" font-size="12">TP Hit</text></svg>`;
 
 const CHART_SVG_LOSS = `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="600" height="300" viewBox="0 0 600 300" fill="%230f172a"><rect width="100%" height="100%" fill="%230b0f19"/><path d="M50,120 L140,110 L220,90 L300,105 L380,190 L460,250" fill="none" stroke="%23ef4444" stroke-width="4"/><line x1="50" y1="140" x2="550" y2="140" stroke="%23334155" stroke-dasharray="4"/><text x="60" y="50" fill="%23ef4444" font-family="sans-serif" font-size="16" font-weight="bold">FAILED BREAKOUT (STOPPED OUT -1.0R)</text><circle cx="220" cy="90" r="6" fill="%233b82f6"/><text x="230" y="85" fill="%2393c5fd" font-family="sans-serif" font-size="12">Entry</text><circle cx="380" cy="190" r="6" fill="%23ef4444"/><text x="390" y="200" fill="%23fca5a5" font-family="sans-serif" font-size="12">SL Hit</text></svg>`;
@@ -11,12 +9,25 @@ const CHART_SVG_LOSS = `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/20
 export const INITIAL_ACCOUNT_BALANCE = 10000;
 export const INITIAL_MILESTONE_TARGET = 500;
 
+export const SESSION_OPTIONS = ['London', 'New York', 'Asian', 'NY/London Overlap'];
+
+export const POPULAR_ASSETS = [
+  { symbol: 'EURUSD', name: 'Euro / USD', pipSize: 0.0001, pipValuePerLot: 10 },
+  { symbol: 'GBPUSD', name: 'British Pound / USD', pipSize: 0.0001, pipValuePerLot: 10 },
+  { symbol: 'USDJPY', name: 'USD / Yen', pipSize: 0.01, pipValuePerLot: 6.7 },
+  { symbol: 'XAUUSD', name: 'Gold / USD', pipSize: 0.1, pipValuePerLot: 10 },
+  { symbol: 'BTCUSD', name: 'Bitcoin / USD', pipSize: 1.0, pipValuePerLot: 1 },
+  { symbol: 'NQ', name: 'Nasdaq 100 Futures', pipSize: 0.25, pipValuePerLot: 5 },
+  { symbol: 'ES', name: 'S&P 500 Futures', pipSize: 0.25, pipValuePerLot: 12.5 },
+];
+
 export const SAMPLE_TRADES = [
   {
     id: 't-101',
     tradeNum: 1,
     date: '2026-09-10',
     time: '09:30',
+    session: 'London',
     pair: 'EURUSD',
     direction: 'BUY',
     setup: 'Liquidity Sweep + FVG',
@@ -42,6 +53,7 @@ export const SAMPLE_TRADES = [
     tradeNum: 2,
     date: '2026-09-11',
     time: '14:15',
+    session: 'New York',
     pair: 'XAUUSD',
     direction: 'SELL',
     setup: 'Order Block Rejection',
@@ -67,7 +79,8 @@ export const SAMPLE_TRADES = [
     tradeNum: 3,
     date: '2026-09-12',
     time: '11:00',
-    pair: 'BTCUSDT',
+    session: 'London',
+    pair: 'BTCUSD',
     direction: 'BUY',
     setup: 'Bull Flag Breakout',
     timeFrame: '1H',
@@ -92,9 +105,10 @@ export const SAMPLE_TRADES = [
     tradeNum: 4,
     date: '2026-09-14',
     time: '15:45',
+    session: 'New York',
     pair: 'NVDA',
     direction: 'BUY',
-    setup: 'Opening Range Breakout',
+    setup: 'Opening Range Breakout (ORB)',
     timeFrame: '5m',
     entryPrice: 118.50,
     stopLoss: 116.00,
@@ -117,6 +131,7 @@ export const SAMPLE_TRADES = [
     tradeNum: 5,
     date: '2026-09-15',
     time: '19:20',
+    session: 'New York',
     pair: 'GBPUSD',
     direction: 'SELL',
     setup: 'Trendline Breakdown',
@@ -132,7 +147,7 @@ export const SAMPLE_TRADES = [
     plannedRR: 2.67,
     realizedRR: -1.67,
     ruleFollowed: 'No',
-    mistake: 'Moved SL / Revenge Trading',
+    mistake: 'Moved SL',
     emotion: 'Frustrated',
     screenshot: CHART_SVG_LOSS,
     lesson: 'VIOLATED RULES: Moved SL higher when price approached, doubled loss. Must respect initial stop!'
@@ -142,9 +157,10 @@ export const SAMPLE_TRADES = [
     tradeNum: 6,
     date: '2026-09-16',
     time: '08:30',
+    session: 'London',
     pair: 'XAUUSD',
     direction: 'BUY',
-    setup: 'Demand Zone Reversal',
+    setup: 'Demand/Supply Zone Reversal',
     timeFrame: '15m',
     entryPrice: 2570.00,
     stopLoss: 2564.00,
@@ -167,9 +183,10 @@ export const SAMPLE_TRADES = [
     tradeNum: 7,
     date: '2026-09-17',
     time: '13:00',
+    session: 'NY/London Overlap',
     pair: 'EURUSD',
     direction: 'SELL',
-    setup: 'Fair Value Gap (FVG)',
+    setup: 'Liquidity Sweep + FVG',
     timeFrame: '5m',
     entryPrice: 1.08900,
     stopLoss: 1.09100,

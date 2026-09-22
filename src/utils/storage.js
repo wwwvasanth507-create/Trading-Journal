@@ -69,6 +69,10 @@ export function saveMilestoneTarget(target) {
   }
 }
 
+// Aliases for compatibility
+export const loadEquityTarget = loadMilestoneTarget;
+export const saveEquityTarget = saveMilestoneTarget;
+
 export function resetToDemoData() {
   saveTrades(SAMPLE_TRADES);
   saveAccountBalance(INITIAL_ACCOUNT_BALANCE);
@@ -76,7 +80,8 @@ export function resetToDemoData() {
   return { 
     trades: SAMPLE_TRADES, 
     balance: INITIAL_ACCOUNT_BALANCE,
-    milestoneTarget: INITIAL_MILESTONE_TARGET 
+    milestoneTarget: INITIAL_MILESTONE_TARGET,
+    target: INITIAL_MILESTONE_TARGET 
   };
 }
 

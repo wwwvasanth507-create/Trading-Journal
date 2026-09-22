@@ -8,10 +8,17 @@ import {
   Calculator,
   Wallet,
   Target,
+  FileCode,
+  Keyboard,
   CheckCircle2,
   AlertCircle
 } from 'lucide-react';
-import { exportTradesToCSV, downloadFile, parseCSVToTrades } from '../utils/exportImport';
+import { 
+  exportTradesToCSV, 
+  exportJournalToJSON, 
+  downloadFile, 
+  parseCSVToTrades 
+} from '../utils/exportImport';
 import { calculateMilestoneProgress } from '../utils/calculations';
 
 export default function Header({ 
@@ -21,15 +28,21 @@ export default function Header({
   setAccountBalance, 
   milestoneTarget = 500,
   setMilestoneTarget,
+  equityTarget,
+  setEquityTarget,
   onOpenNewTradeModal, 
   onOpenCalculator,
+  onOpenShortcuts,
   onResetDemo 
 }) {
+  const activeMilestone = milestoneTarget || equityTarget || 500;
+  const updateMilestone = setMilestoneTarget || setEquityTarget;
+
   const [isEditingBalance, setIsEditingBalance] = useState(false);
   const [balanceInput, setBalanceInput] = useState(accountBalance.toString());
 
   const [isEditingMilestone, setIsEditingMilestone] = useState(false);
-  const [milestoneInput, setMilestoneInput] = useState(milestoneTarget.toString());
+  const [milestoneInput, setMilestoneInput] = useState(activeMilestone.toString());
 
   // Quick stats calculation
   const closedTrades = trades.filter(t => t.result !== 'OPEN');
@@ -40,7 +53,7 @@ export default function Header({
   const currentEquity = accountBalance + totalPnL;
 
   // Milestone Progress (Strictly Net P&L vs Milestone Target - Starting Capital is NEVER added)
-  const milestoneProgress = calculateMilestoneProgress(totalPnL, milestoneTarget);
+  const milestoneProgress = calculateMilestoneProgress(totalPnL, activeMilestone);
 
   const handleSaveBalance = () => {
     const val = parseFloat(balanceInput);
@@ -52,8 +65,8 @@ export default function Header({
 
   const handleSaveMilestone = () => {
     const val = parseFloat(milestoneInput);
-    if (!isNaN(val) && val > 0) {
-      setMilestoneTarget(val);
+    if (!isNaN(val) && val > 0 && updateMilestone) {
+      updateMilestone(val);
     }
     setIsEditingMilestone(false);
   };
@@ -61,10 +74,16 @@ export default function Header({
   const handleExportCSV = () => {
     const csvData = exportTradesToCSV(trades);
     const dateStr = new Date().toISOString().split('T')[0];
-    downloadFile(csvData, `trading_journal_${dateStr}.csv`);
+    downloadFile(csvData, `apex_trading_journal_${dateStr}.csv`);
   };
 
-  const handleImportCSV = (e) => {
+  const handleExportJSON = () => {
+    const jsonData = exportJournalToJSON(trades, accountBalance, activeMilestone);
+    const dateStr = new Date().toISOString().split('T')[0];
+    downloadFile(jsonData, `apex_journal_backup_${dateStr}.json`, 'application/json');
+  };
+
+  const handleImportFile = (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -72,12 +91,27 @@ export default function Header({
     reader.onload = (evt) => {
       const text = evt.target?.result;
       if (typeof text === 'string') {
-        const imported = parseCSVToTrades(text);
-        if (imported.length > 0) {
-          setTrades(prev => [...imported, ...prev]);
-          alert(`Successfully imported ${imported.length} trades!`);
+        if (file.name.endsWith('.json')) {
+          try {
+            const data = JSON.parse(text);
+            if (data.trades && Array.isArray(data.trades)) {
+              setTrades(data.trades);
+              if (data.accountBalance) setAccountBalance(data.accountBalance);
+              if (data.equityTarget && updateMilestone) updateMilestone(data.equityTarget);
+              if (data.milestoneTarget && updateMilestone) updateMilestone(data.milestoneTarget);
+              alert(`Successfully restored full journal backup (${data.trades.length} trades)!`);
+            }
+          } catch (err) {
+            alert('Failed to parse JSON backup file: ' + err.message);
+          }
         } else {
-          alert('Could not parse any valid trades from this CSV file.');
+          const imported = parseCSVToTrades(text);
+          if (imported.length > 0) {
+            setTrades(prev => [...imported, ...prev]);
+            alert(`Successfully imported ${imported.length} trades from CSV!`);
+          } else {
+            alert('Could not parse any valid trades from this CSV file.');
+          }
         }
       }
     };
@@ -94,7 +128,7 @@ export default function Header({
         </div>
         <div>
           <h1 className="brand-title">APEX JOURNAL</h1>
-          <div className="brand-subtitle">Smart Sheet & Precision Risk Terminal</div>
+          <div className="brand-subtitle">Smart Sheet & Precision Terminal</div>
         </div>
       </div>
 
@@ -126,7 +160,7 @@ export default function Header({
           )}
         </div>
 
-        <div className="account-divider"></div>
+        <div className="account-divider" />
 
         {/* Stat 2: Milestone Target (Standalone profit goal - NEVER includes starting capital) */}
         <div className="account-stat">
@@ -145,17 +179,17 @@ export default function Header({
           ) : (
             <span 
               className="account-val editable" 
-              onClick={() => { setMilestoneInput(milestoneTarget.toString()); setIsEditingMilestone(true); }}
+              onClick={() => { setMilestoneInput(activeMilestone.toString()); setIsEditingMilestone(true); }}
               title="Click to edit milestone target (e.g. $500, separate from starting capital)"
               style={{ color: '#f59e0b' }}
             >
               <Target size={14} color="#f59e0b" />
-              ${milestoneTarget.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              ${activeMilestone.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </span>
           )}
         </div>
 
-        <div className="account-divider"></div>
+        <div className="account-divider" />
 
         {/* Stat 3: Milestone Progress (Net P&L vs Milestone Target) */}
         <div className="account-stat">
@@ -171,12 +205,15 @@ export default function Header({
               {milestoneProgress.progressPercent}%
             </span>
             <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
-              ({totalPnL >= 0 ? '+' : ''}${totalPnL.toFixed(0)} / ${milestoneTarget.toFixed(0)})
+              ({totalPnL >= 0 ? '+' : ''}${totalPnL.toFixed(0)} / ${activeMilestone.toFixed(0)})
             </span>
+          </div>
+          <div className="equity-progress-bar" style={{ width: '100%', height: '4px', marginTop: '3px' }} title={`Target: $${activeMilestone.toLocaleString()} (${milestoneProgress.progressPercent}% reached)`}>
+            <div className="equity-progress-fill" style={{ width: `${milestoneProgress.progressPercent}%`, height: '100%', background: milestoneProgress.isAchieved ? 'var(--color-win)' : '#f59e0b' }} />
           </div>
         </div>
 
-        <div className="account-divider"></div>
+        <div className="account-divider" />
 
         {/* Stat 4: Total Equity (Starting Capital + Net P&L) */}
         <div className="account-stat">
@@ -186,7 +223,7 @@ export default function Header({
           </span>
         </div>
 
-        <div className="account-divider"></div>
+        <div className="account-divider" />
 
         {/* Stat 5: Net P&L */}
         <div className="account-stat">
@@ -196,7 +233,7 @@ export default function Header({
           </span>
         </div>
 
-        <div className="account-divider"></div>
+        <div className="account-divider" />
 
         {/* Stat 6: Win Rate */}
         <div className="account-stat">
@@ -209,28 +246,37 @@ export default function Header({
 
       {/* Action Buttons */}
       <div className="header-actions">
-        <button className="btn btn-primary" onClick={onOpenNewTradeModal} title="Log a new trade with live auto-calculations">
+        <button className="btn btn-primary" onClick={onOpenNewTradeModal} title="Log a new trade [Hotkey: N]">
           <PlusCircle size={16} />
           <span>New Trade</span>
         </button>
 
-        <button className="btn btn-secondary" onClick={onOpenCalculator} title="Open Position Sizing Calculator">
+        <button className="btn btn-secondary" onClick={onOpenCalculator} title="Open Position Sizing Calculator [Hotkey: C]">
           <Calculator size={15} />
           <span>Calculator</span>
         </button>
 
-        <button className="btn btn-secondary" onClick={handleExportCSV} title="Export all trades to Excel/CSV">
+        <button className="btn btn-secondary" onClick={handleExportCSV} title="Export trades to CSV file">
           <Download size={15} />
-          <span>Export CSV</span>
+          <span>CSV</span>
         </button>
 
-        <label className="btn btn-secondary" title="Import trades from CSV file" style={{ margin: 0, cursor: 'pointer' }}>
+        <button className="btn btn-secondary" onClick={handleExportJSON} title="Full JSON Backup">
+          <FileCode size={15} />
+          <span>Backup</span>
+        </button>
+
+        <label className="btn btn-secondary" title="Import trades from CSV or JSON file" style={{ margin: 0, cursor: 'pointer' }}>
           <Upload size={15} />
           <span>Import</span>
-          <input type="file" accept=".csv" onChange={handleImportCSV} style={{ display: 'none' }} />
+          <input type="file" accept=".csv,.json" onChange={handleImportFile} style={{ display: 'none' }} />
         </label>
 
-        <button className="btn btn-secondary btn-icon" onClick={onResetDemo} title="Reset to realistic demo trades">
+        <button className="btn btn-secondary btn-icon" onClick={onOpenShortcuts} title="Keyboard Hotkeys [?]">
+          <Keyboard size={15} />
+        </button>
+
+        <button className="btn btn-secondary btn-icon" onClick={onResetDemo} title="Reset to demo trades">
           <RotateCcw size={15} />
         </button>
       </div>
