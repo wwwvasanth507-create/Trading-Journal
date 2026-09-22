@@ -4,17 +4,22 @@ import {
   TrendingDown, 
   Award, 
   Target, 
+  Flag,
   Percent, 
   DollarSign, 
   ShieldAlert, 
-  BarChart3,
-  Layers,
-  ArrowUpRight,
-  ArrowDownRight
+  BarChart3, 
+  Layers, 
+  ArrowUpRight, 
+  ArrowDownRight,
+  CheckCircle2
 } from 'lucide-react';
+import { calculateMilestoneProgress } from '../../utils/calculations';
 
-export default function AnalyticsView({ trades, accountBalance }) {
+export default function AnalyticsView({ trades, accountBalance, milestoneTarget = 500, setMilestoneTarget }) {
   const [hoveredPoint, setHoveredPoint] = useState(null);
+  const [isEditingTarget, setIsEditingTarget] = useState(false);
+  const [targetInput, setTargetInput] = useState(milestoneTarget.toString());
 
   // Closed trades sorted by date/time
   const closedTrades = trades
@@ -118,6 +123,17 @@ export default function AnalyticsView({ trades, accountBalance }) {
 
   const pairList = Object.entries(pairStats).sort((a, b) => b[1].pnl - a[1].pnl);
 
+  // Compute Milestone Progress (Strictly Net P&L vs Milestone Target - Starting Capital is NEVER added)
+  const milestoneProgress = calculateMilestoneProgress(netPnL, milestoneTarget);
+
+  const handleSaveTarget = () => {
+    const val = parseFloat(targetInput);
+    if (!isNaN(val) && val > 0 && setMilestoneTarget) {
+      setMilestoneTarget(val);
+    }
+    setIsEditingTarget(false);
+  };
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
       {/* KPI Cards Grid */}
@@ -135,6 +151,58 @@ export default function AnalyticsView({ trades, accountBalance }) {
           </div>
           <div className="kpi-sub">
             {totalClosed} completed trades ({trades.length - totalClosed} open)
+          </div>
+        </div>
+
+        {/* Milestone Target & Progress (Calculated strictly WITHOUT starting capital) */}
+        <div className="kpi-card" style={{ border: milestoneProgress.isAchieved ? '1px solid var(--color-win-border)' : undefined }}>
+          <div className="kpi-header">
+            <span title="Standalone profit milestone target (starting capital is not added)">Milestone Target</span>
+            <div className="kpi-icon" style={{ background: 'rgba(245, 158, 11, 0.15)', color: '#f59e0b' }}>
+              <Flag size={16} />
+            </div>
+          </div>
+          <div className="kpi-val" style={{ color: '#f59e0b', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            {isEditingTarget ? (
+              <input 
+                type="number" 
+                className="cell-input-inline" 
+                style={{ width: '110px', fontSize: '1.2rem', color: '#f59e0b', borderBottom: '1px solid #f59e0b' }} 
+                value={targetInput} 
+                onChange={e => setTargetInput(e.target.value)} 
+                onBlur={handleSaveTarget} 
+                onKeyDown={e => e.key === 'Enter' && handleSaveTarget()} 
+                autoFocus 
+              />
+            ) : (
+              <span 
+                className="editable" 
+                onClick={() => { setTargetInput(milestoneTarget.toString()); setIsEditingTarget(true); }}
+                title="Click to edit milestone target amount (e.g. $500, separate from starting capital)"
+              >
+                ${milestoneTarget.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              </span>
+            )}
+            {milestoneProgress.isAchieved && (
+              <span style={{ fontSize: '0.72rem', background: 'var(--color-win-bg)', color: 'var(--color-win)', padding: '2px 8px', borderRadius: '12px', fontWeight: 600 }}>
+                Achieved 🎉
+              </span>
+            )}
+          </div>
+          {/* Progress Bar towards Milestone Target */}
+          <div style={{ width: '100%', height: '6px', borderRadius: '3px', background: 'var(--bg-tertiary)', overflow: 'hidden', marginTop: '2px' }}>
+            <div 
+              style={{ 
+                width: `${milestoneProgress.progressPercent}%`, 
+                height: '100%', 
+                background: milestoneProgress.isAchieved ? 'var(--color-win)' : 'linear-gradient(90deg, #f59e0b, #3b82f6)', 
+                transition: 'width 0.5s ease-out' 
+              }} 
+            />
+          </div>
+          <div className="kpi-sub" style={{ display: 'flex', justifyContent: 'space-between', marginTop: '2px' }}>
+            <span>Progress: {milestoneProgress.progressPercent}% (${netPnL >= 0 ? '+' : ''}${netPnL.toFixed(0)})</span>
+            <span style={{ color: 'var(--text-muted)' }}>Capital: ${accountBalance.toLocaleString()}</span>
           </div>
         </div>
 
@@ -198,7 +266,7 @@ export default function AnalyticsView({ trades, accountBalance }) {
             -${maxDrawdown.toFixed(2)}
           </div>
           <div className="kpi-sub">
-            {((maxDrawdown / accountBalance) * 100).toFixed(1)}% of account capital
+            {((maxDrawdown / accountBalance) * 100).toFixed(1)}% of starting capital
           </div>
         </div>
       </div>

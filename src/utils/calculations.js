@@ -246,3 +246,40 @@ export function autoCalculateTrade(trade, accountBalance = 10000) {
 
   return updated;
 }
+
+/**
+ * Calculate Milestone Target Progress
+ * NOTE: The milestone target is strictly a standalone goal amount (e.g. $500).
+ * Starting capital (e.g. $5,000) is NEVER added to the milestone target.
+ * Progress is measured purely as Net Realized P&L against the milestone target.
+ *
+ * @param {number} netPnL - Realized Net P&L (e.g. $300)
+ * @param {number} milestoneTarget - The milestone/target amount (e.g. $500)
+ * @returns {{ targetAmount: number, progressPercent: number, remaining: number, isAchieved: boolean }}
+ */
+export function calculateMilestoneProgress(netPnL, milestoneTarget) {
+  const pnl = parseFloat(netPnL) || 0;
+  const target = parseFloat(milestoneTarget) || 0;
+
+  if (target <= 0) {
+    return {
+      targetAmount: 0,
+      progressPercent: 0,
+      remaining: 0,
+      isAchieved: false
+    };
+  }
+
+  // Progress percentage (0% to 100% for progress bars, can exceed 100% conceptually)
+  const rawPercent = (pnl / target) * 100;
+  const progressPercent = parseFloat(Math.min(100, Math.max(0, rawPercent)).toFixed(1));
+  const remaining = Math.max(0, parseFloat((target - pnl).toFixed(2)));
+  const isAchieved = pnl >= target;
+
+  return {
+    targetAmount: target,
+    progressPercent,
+    remaining,
+    isAchieved
+  };
+}

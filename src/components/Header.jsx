@@ -7,22 +7,29 @@ import {
   RotateCcw, 
   Calculator,
   Wallet,
+  Target,
   CheckCircle2,
   AlertCircle
 } from 'lucide-react';
 import { exportTradesToCSV, downloadFile, parseCSVToTrades } from '../utils/exportImport';
+import { calculateMilestoneProgress } from '../utils/calculations';
 
 export default function Header({ 
   trades, 
   setTrades, 
   accountBalance, 
   setAccountBalance, 
+  milestoneTarget = 500,
+  setMilestoneTarget,
   onOpenNewTradeModal, 
   onOpenCalculator,
   onResetDemo 
 }) {
   const [isEditingBalance, setIsEditingBalance] = useState(false);
   const [balanceInput, setBalanceInput] = useState(accountBalance.toString());
+
+  const [isEditingMilestone, setIsEditingMilestone] = useState(false);
+  const [milestoneInput, setMilestoneInput] = useState(milestoneTarget.toString());
 
   // Quick stats calculation
   const closedTrades = trades.filter(t => t.result !== 'OPEN');
@@ -32,12 +39,23 @@ export default function Header({
   const totalPnL = trades.reduce((acc, t) => acc + (parseFloat(t.pnl) || 0), 0);
   const currentEquity = accountBalance + totalPnL;
 
+  // Milestone Progress (Strictly Net P&L vs Milestone Target - Starting Capital is NEVER added)
+  const milestoneProgress = calculateMilestoneProgress(totalPnL, milestoneTarget);
+
   const handleSaveBalance = () => {
     const val = parseFloat(balanceInput);
     if (!isNaN(val) && val > 0) {
       setAccountBalance(val);
     }
     setIsEditingBalance(false);
+  };
+
+  const handleSaveMilestone = () => {
+    const val = parseFloat(milestoneInput);
+    if (!isNaN(val) && val > 0) {
+      setMilestoneTarget(val);
+    }
+    setIsEditingMilestone(false);
   };
 
   const handleExportCSV = () => {
@@ -82,13 +100,14 @@ export default function Header({
 
       {/* Account Overview Bar */}
       <div className="account-bar">
+        {/* Stat 1: Starting Capital (Strictly independent from milestone target) */}
         <div className="account-stat">
-          <span className="account-label">Account Balance</span>
+          <span className="account-label" title="Base starting deposit / capital">Starting Capital</span>
           {isEditingBalance ? (
             <input
               type="number"
               className="cell-input-inline"
-              style={{ width: '100px', borderBottom: '1px solid var(--accent-primary)' }}
+              style={{ width: '90px', borderBottom: '1px solid var(--accent-primary)' }}
               value={balanceInput}
               onChange={e => setBalanceInput(e.target.value)}
               onBlur={handleSaveBalance}
@@ -99,9 +118,9 @@ export default function Header({
             <span 
               className="account-val editable" 
               onClick={() => { setBalanceInput(accountBalance.toString()); setIsEditingBalance(true); }}
-              title="Click to edit account starting balance"
+              title="Click to edit starting capital (kept separate from milestone target)"
             >
-              <Wallet size={15} color="var(--accent-primary)" />
+              <Wallet size={14} color="var(--accent-primary)" />
               ${accountBalance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </span>
           )}
@@ -109,8 +128,59 @@ export default function Header({
 
         <div className="account-divider"></div>
 
+        {/* Stat 2: Milestone Target (Standalone profit goal - NEVER includes starting capital) */}
         <div className="account-stat">
-          <span className="account-label">Total Equity</span>
+          <span className="account-label" title="Standalone profit milestone goal (starting capital is not added)">Milestone Target</span>
+          {isEditingMilestone ? (
+            <input
+              type="number"
+              className="cell-input-inline"
+              style={{ width: '85px', borderBottom: '1px solid #f59e0b' }}
+              value={milestoneInput}
+              onChange={e => setMilestoneInput(e.target.value)}
+              onBlur={handleSaveMilestone}
+              onKeyDown={e => e.key === 'Enter' && handleSaveMilestone()}
+              autoFocus
+            />
+          ) : (
+            <span 
+              className="account-val editable" 
+              onClick={() => { setMilestoneInput(milestoneTarget.toString()); setIsEditingMilestone(true); }}
+              title="Click to edit milestone target (e.g. $500, separate from starting capital)"
+              style={{ color: '#f59e0b' }}
+            >
+              <Target size={14} color="#f59e0b" />
+              ${milestoneTarget.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            </span>
+          )}
+        </div>
+
+        <div className="account-divider"></div>
+
+        {/* Stat 3: Milestone Progress (Net P&L vs Milestone Target) */}
+        <div className="account-stat">
+          <span className="account-label">Target Progress</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <span 
+              className="account-val" 
+              style={{ 
+                color: milestoneProgress.isAchieved ? 'var(--color-win)' : 'var(--text-primary)', 
+                fontSize: '1rem' 
+              }}
+            >
+              {milestoneProgress.progressPercent}%
+            </span>
+            <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+              ({totalPnL >= 0 ? '+' : ''}${totalPnL.toFixed(0)} / ${milestoneTarget.toFixed(0)})
+            </span>
+          </div>
+        </div>
+
+        <div className="account-divider"></div>
+
+        {/* Stat 4: Total Equity (Starting Capital + Net P&L) */}
+        <div className="account-stat">
+          <span className="account-label" title="Starting Capital + Realized Net P&L">Total Equity</span>
           <span className={`account-val ${totalPnL >= 0 ? 'win' : 'loss'}`}>
             ${currentEquity.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </span>
@@ -118,6 +188,7 @@ export default function Header({
 
         <div className="account-divider"></div>
 
+        {/* Stat 5: Net P&L */}
         <div className="account-stat">
           <span className="account-label">Net P&L</span>
           <span className={`account-val ${totalPnL >= 0 ? 'win' : 'loss'}`}>
@@ -127,10 +198,11 @@ export default function Header({
 
         <div className="account-divider"></div>
 
+        {/* Stat 6: Win Rate */}
         <div className="account-stat">
           <span className="account-label">Win Rate</span>
           <span className="account-val" style={{ color: winRate >= 50 ? 'var(--color-win)' : 'var(--color-loss)' }}>
-            {winRate}% <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>({wins}/{closedTrades.length})</span>
+            {winRate}% <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>({wins}/{closedTrades.length})</span>
           </span>
         </div>
       </div>

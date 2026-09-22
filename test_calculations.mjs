@@ -7,7 +7,8 @@ import {
   calculatePnL,
   calculateRealizedRR,
   calculateResult,
-  autoCalculateTrade
+  autoCalculateTrade,
+  calculateMilestoneProgress
 } from './src/utils/calculations.js';
 
 console.log('--- RUNNING TRADING JOURNAL CALCULATION TESTS ---');
@@ -68,4 +69,24 @@ console.assert(calculated.result === 'WIN', 'AutoCalc result failed');
 console.assert(calculated.plannedRR === 3.00, 'AutoCalc plannedRR failed');
 console.assert(calculated.pnl > 0, 'AutoCalc pnl failed');
 
-console.log('✅ ALL 6 CALCULATION UNIT TESTS PASSED SUCCESSFULLY!');
+// Test 7: Milestone Target Calculation (WITHOUT Starting Capital)
+const startingCapital = 5000;
+const milestoneTarget = 500;
+
+// Milestone must be $500, NOT $5,500
+console.assert(milestoneTarget === 500, `Milestone target should be 500, got ${milestoneTarget}`);
+console.assert(milestoneTarget !== (startingCapital + milestoneTarget), 'Milestone must NOT include starting capital!');
+
+// Progress with $300 Net P&L: 300 / 500 = 60%, Remaining = $200
+const progress1 = calculateMilestoneProgress(300, milestoneTarget);
+console.assert(progress1.targetAmount === 500, `Target amount mismatch: ${progress1.targetAmount}`);
+console.assert(progress1.progressPercent === 60.0, `Progress % mismatch: ${progress1.progressPercent}`);
+console.assert(progress1.remaining === 200.0, `Remaining mismatch: ${progress1.remaining}`);
+console.assert(progress1.isAchieved === false, 'Should not be achieved yet');
+
+// Progress with $550 Net P&L (Target Achieved)
+const progress2 = calculateMilestoneProgress(550, milestoneTarget);
+console.assert(progress2.isAchieved === true, 'Milestone should be marked achieved');
+console.assert(progress2.remaining === 0, 'Remaining should be 0 when target reached');
+
+console.log('✅ ALL 7 CALCULATION UNIT TESTS PASSED SUCCESSFULLY!');

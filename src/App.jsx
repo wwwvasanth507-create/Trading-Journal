@@ -15,6 +15,8 @@ import {
   saveTrades, 
   loadAccountBalance, 
   saveAccountBalance, 
+  loadMilestoneTarget,
+  saveMilestoneTarget,
   resetToDemoData, 
   clearAllTrades 
 } from './utils/storage';
@@ -23,6 +25,7 @@ import { autoCalculateTrade } from './utils/calculations';
 export default function App() {
   const [trades, setTrades] = useState(() => loadTrades());
   const [accountBalance, setAccountBalance] = useState(() => loadAccountBalance());
+  const [milestoneTarget, setMilestoneTarget] = useState(() => loadMilestoneTarget());
   const [activeTab, setActiveTab] = useState('sheet');
 
   // Search & Filter State
@@ -41,7 +44,7 @@ export default function App() {
   const [isCalculatorOpen, setIsCalculatorOpen] = useState(false);
   const [viewingImage, setViewingImage] = useState(null); // { url, title }
 
-  // Auto-save to LocalStorage whenever trades or balance change
+  // Auto-save to LocalStorage whenever trades, balance, or milestoneTarget change
   useEffect(() => {
     saveTrades(trades);
   }, [trades]);
@@ -49,6 +52,10 @@ export default function App() {
   useEffect(() => {
     saveAccountBalance(accountBalance);
   }, [accountBalance]);
+
+  useEffect(() => {
+    saveMilestoneTarget(milestoneTarget);
+  }, [milestoneTarget]);
 
   // Next trade sequence number
   const nextTradeNum = trades.reduce((max, t) => Math.max(max, t.tradeNum || 0), 0) + 1;
@@ -139,9 +146,10 @@ export default function App() {
 
   const handleResetDemo = () => {
     if (window.confirm('Reset all trades to default demo data? Your current trades will be replaced.')) {
-      const { trades: newTrades, balance } = resetToDemoData();
+      const { trades: newTrades, balance, milestoneTarget: newTarget } = resetToDemoData();
       setTrades(newTrades);
       setAccountBalance(balance);
+      if (newTarget !== undefined) setMilestoneTarget(newTarget);
     }
   };
 
@@ -179,6 +187,8 @@ export default function App() {
         setTrades={setTrades}
         accountBalance={accountBalance}
         setAccountBalance={setAccountBalance}
+        milestoneTarget={milestoneTarget}
+        setMilestoneTarget={setMilestoneTarget}
         onOpenNewTradeModal={handleOpenNewTrade}
         onOpenCalculator={() => setIsCalculatorOpen(true)}
         onResetDemo={handleResetDemo}
@@ -222,6 +232,8 @@ export default function App() {
           <AnalyticsView 
             trades={trades} 
             accountBalance={accountBalance} 
+            milestoneTarget={milestoneTarget}
+            setMilestoneTarget={setMilestoneTarget}
           />
         )}
 
@@ -249,6 +261,7 @@ export default function App() {
         onClose={() => { setIsTradeModalOpen(false); setEditingTrade(null); }}
         onSave={handleSaveTrade}
         nextTradeNum={nextTradeNum}
+        onViewImage={(url, title) => setViewingImage({ url, title })}
       />
 
       {/* Modal: Screenshot Zoom Lightbox */}

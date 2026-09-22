@@ -6,6 +6,7 @@ import {
   TrendingUp, 
   TrendingDown, 
   Image as ImageIcon, 
+  ZoomIn,
   Sparkles, 
   Calculator,
   AlertTriangle
@@ -34,7 +35,8 @@ export default function TradeModal({
   isOpen, 
   onClose, 
   onSave,
-  nextTradeNum = 1
+  nextTradeNum = 1,
+  onViewImage
 }) {
   if (!isOpen) return null;
 
@@ -453,19 +455,48 @@ export default function TradeModal({
             <div className="form-group">
               <label className="form-label">Chart Screenshot (Paste Ctrl+V or Upload)</label>
               {formData.screenshot ? (
-                <div style={{ position: 'relative', display: 'inline-block', maxWidth: '300px' }}>
-                  <img 
-                    src={formData.screenshot} 
-                    alt="Preview" 
-                    style={{ width: '100%', height: '140px', objectFit: 'cover', borderRadius: '8px', border: '1px solid var(--border-card)' }} 
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setFormData({ ...formData, screenshot: '' })}
-                    style={{ position: 'absolute', top: '6px', right: '6px', background: 'rgba(0,0,0,0.7)', border: 'none', color: '#fff', borderRadius: '50%', padding: '4px', cursor: 'pointer' }}
+                <div 
+                  className="image-thumbnail-card"
+                  onDoubleClick={() => onViewImage && onViewImage(formData.screenshot, `${formData.pair || 'Trade'} Chart Screenshot`)}
+                  title="Double-click to open enlarged view in lightbox"
+                >
+                  <div 
+                    className="thumb-preview-wrap"
+                    onClick={() => onViewImage && onViewImage(formData.screenshot, `${formData.pair || 'Trade'} Chart Screenshot`)}
                   >
-                    <X size={14} />
-                  </button>
+                    <img 
+                      src={formData.screenshot} 
+                      alt="Thumbnail Preview" 
+                      className="image-thumbnail-preview" 
+                    />
+                    <div className="thumb-overlay-hint">
+                      <ZoomIn size={14} color="#fff" />
+                    </div>
+                  </div>
+
+                  <div className="thumb-info">
+                    <div className="thumb-title">Chart Screenshot Attached</div>
+                    <div className="thumb-hint">Double-click to enlarge & inspect</div>
+                  </div>
+
+                  <div className="thumb-actions">
+                    <button
+                      type="button"
+                      className="btn-thumb-action"
+                      onClick={() => onViewImage && onViewImage(formData.screenshot, `${formData.pair || 'Trade'} Chart Screenshot`)}
+                      title="Inspect image in full lightbox"
+                    >
+                      <ZoomIn size={15} />
+                    </button>
+                    <button
+                      type="button"
+                      className="btn-thumb-action btn-thumb-delete"
+                      onClick={(e) => { e.stopPropagation(); setFormData({ ...formData, screenshot: '' }); }}
+                      title="Remove screenshot"
+                    >
+                      <X size={15} />
+                    </button>
+                  </div>
                 </div>
               ) : (
                 <label className="dropzone">

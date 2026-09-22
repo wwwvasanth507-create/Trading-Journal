@@ -9,6 +9,7 @@ const CHART_SVG_WIN = `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/200
 const CHART_SVG_LOSS = `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="600" height="300" viewBox="0 0 600 300" fill="%230f172a"><rect width="100%" height="100%" fill="%230b0f19"/><path d="M50,120 L140,110 L220,90 L300,105 L380,190 L460,250" fill="none" stroke="%23ef4444" stroke-width="4"/><line x1="50" y1="140" x2="550" y2="140" stroke="%23334155" stroke-dasharray="4"/><text x="60" y="50" fill="%23ef4444" font-family="sans-serif" font-size="16" font-weight="bold">FAILED BREAKOUT (STOPPED OUT -1.0R)</text><circle cx="220" cy="90" r="6" fill="%233b82f6"/><text x="230" y="85" fill="%2393c5fd" font-family="sans-serif" font-size="12">Entry</text><circle cx="380" cy="190" r="6" fill="%23ef4444"/><text x="390" y="200" fill="%23fca5a5" font-family="sans-serif" font-size="12">SL Hit</text></svg>`;
 
 export const INITIAL_ACCOUNT_BALANCE = 10000;
+export const INITIAL_MILESTONE_TARGET = 500;
 
 export const SAMPLE_TRADES = [
   {

@@ -455,10 +455,11 @@ export default function TableGrid({
                       <button 
                         className="thumb-btn" 
                         onClick={() => onViewImage(t.screenshot, `${t.pair} (${t.direction})`)}
-                        title="Click to view chart screenshot"
+                        onDoubleClick={() => onViewImage(t.screenshot, `${t.pair} (${t.direction})`)}
+                        title="Double-click to open enlarged view in lightbox"
                       >
                         <img src={t.screenshot} alt="Chart" className="thumb-img" />
-                        <span style={{ fontSize: '0.72rem' }}>View</span>
+                        <span style={{ fontSize: '0.72rem' }}>Inspect</span>
                       </button>
                     ) : (
                       <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>None</span>
