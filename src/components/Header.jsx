@@ -125,7 +125,7 @@ export default function Header({
       <div className="brand-section">
         <div className="brand-icon">
           <img 
-            src="/calendar-bg.jpg" 
+            src="/app-logo.jpg" 
             alt="RAGUL TRADING JOURNAL Logo" 
             className="brand-icon-img" 
           />
