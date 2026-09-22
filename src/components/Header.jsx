@@ -124,7 +124,11 @@ export default function Header({
       {/* Brand */}
       <div className="brand-section">
         <div className="brand-icon">
-          <TrendingUp size={22} strokeWidth={2.5} />
+          <img 
+            src="/calendar-bg.jpg" 
+            alt="RAGUL TRADING JOURNAL Logo" 
+            className="brand-icon-img" 
+          />
         </div>
         <div>
           <h1 className="brand-title">RAGUL TRADING JOURNAL</h1>
