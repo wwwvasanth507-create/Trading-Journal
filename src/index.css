@@ -1073,7 +1073,7 @@ body {
   min-height: calc(100vh - 130px);
   background-image: 
     linear-gradient(rgba(9, 13, 22, 0.80), rgba(9, 13, 22, 0.88)), 
-    url('/photo-1595520519880-a86c48ea536c.avif');
+    url('/calendar-bg.jpg');
   background-size: cover;
   background-position: center center;
   background-repeat: no-repeat;
