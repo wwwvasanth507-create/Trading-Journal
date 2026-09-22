@@ -127,7 +127,7 @@ export default function Header({
           <TrendingUp size={22} strokeWidth={2.5} />
         </div>
         <div>
-          <h1 className="brand-title">APEX JOURNAL</h1>
+          <h1 className="brand-title">RK TRADING JOURNAL</h1>
           <div className="brand-subtitle">Smart Sheet & Precision Terminal</div>
         </div>
       </div>
