@@ -86,10 +86,10 @@ export default function TradingCalendarView({ trades, onEditTrade }) {
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+    <div className="calendar-view-container" style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
       {/* Calendar Header & Monthly Summary */}
-      <div className="chart-card">
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
+      <div className="chart-card calendar-card">
+        <div className="calendar-summary-bar">
           <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
             <div className="chart-title">
               <CalendarIcon size={20} color="var(--accent-primary)" />
@@ -156,8 +156,8 @@ export default function TradingCalendarView({ trades, onEditTrade }) {
                 className={`calendar-day-cell ${isSelected ? 'selected' : ''}`}
                 style={{ 
                   cursor: hasTrades ? 'pointer' : 'default',
-                  border: isSelected ? '2px solid var(--accent-primary)' : hasTrades ? (isProfit ? '1px solid var(--color-win-border)' : '1px solid var(--color-loss-border)') : '1px solid var(--border-subtle)',
-                  background: hasTrades ? (isProfit ? 'rgba(16, 185, 129, 0.05)' : 'rgba(239, 68, 68, 0.05)') : 'var(--bg-surface)'
+                  border: isSelected ? '2px solid var(--accent-primary)' : hasTrades ? (isProfit ? '1px solid var(--color-win-border)' : '1px solid var(--color-loss-border)') : '1px solid rgba(255, 255, 255, 0.08)',
+                  background: hasTrades ? (isProfit ? 'rgba(16, 185, 129, 0.16)' : 'rgba(239, 68, 68, 0.16)') : 'rgba(15, 23, 42, 0.65)'
                 }}
                 onClick={() => handleSelectDay(cell)}
               >
