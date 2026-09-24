@@ -1243,3 +1243,37 @@ body {
   background: radial-gradient(circle, rgba(59, 130, 246, 0.18) 0%, transparent 70%);
   pointer-events: none;
 }
+
+/* Animated Trend Line & Equity Curve Glow */
+@keyframes trendFlow {
+  from {
+    stroke-dashoffset: 20;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+.anim-trend-flow {
+  animation: trendFlow 1.4s linear infinite;
+}
+
+@keyframes radarPulse {
+  0% {
+    r: 4;
+    opacity: 0.95;
+  }
+  70% {
+    r: 13;
+    opacity: 0.15;
+  }
+  100% {
+    r: 16;
+    opacity: 0;
+  }
+}
+
+.anim-radar-ping {
+  animation: radarPulse 1.8s cubic-bezier(0, 0.2, 0.8, 1) infinite;
+}
+

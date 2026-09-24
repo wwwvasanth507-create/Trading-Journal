@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { 
   LayoutDashboard, 
   TrendingUp, 
+  TrendingDown, 
   DollarSign, 
   Award, 
   Calendar as CalendarIcon, 
@@ -24,6 +25,61 @@ import {
 } from 'lucide-react';
 import { calculateMilestoneProgress } from '../../utils/calculations';
 
+export const GRAPH_COLOR_THEMES = [
+  {
+    id: 'cyber',
+    name: 'Cyber Cyan',
+    label: 'Cyber',
+    stops: ['#38bdf8', '#818cf8', '#10b981'],
+    areaColor: '#38bdf8',
+    trend: ['#f59e0b', '#fbbf24'],
+    trendGlow: 'rgba(245, 158, 11, 0.5)',
+    trendBadgeBg: 'rgba(245, 158, 11, 0.15)',
+    trendBadgeColor: '#fbbf24',
+    trendBadgeBorder: 'rgba(245, 158, 11, 0.35)',
+    swatch: 'linear-gradient(135deg, #38bdf8, #fbbf24)'
+  },
+  {
+    id: 'emerald',
+    name: 'Emerald Aurora',
+    label: 'Emerald',
+    stops: ['#10b981', '#34d399', '#06b6d4'],
+    areaColor: '#10b981',
+    trend: ['#a855f7', '#c084fc'],
+    trendGlow: 'rgba(168, 85, 247, 0.5)',
+    trendBadgeBg: 'rgba(168, 85, 247, 0.15)',
+    trendBadgeColor: '#c084fc',
+    trendBadgeBorder: 'rgba(168, 85, 247, 0.35)',
+    swatch: 'linear-gradient(135deg, #10b981, #c084fc)'
+  },
+  {
+    id: 'solar',
+    name: 'Solar Flare',
+    label: 'Solar',
+    stops: ['#fbbf24', '#f97316', '#ef4444'],
+    areaColor: '#f97316',
+    trend: ['#06b6d4', '#38bdf8'],
+    trendGlow: 'rgba(6, 182, 212, 0.5)',
+    trendBadgeBg: 'rgba(6, 182, 212, 0.15)',
+    trendBadgeColor: '#38bdf8',
+    trendBadgeBorder: 'rgba(6, 182, 212, 0.35)',
+    swatch: 'linear-gradient(135deg, #f97316, #38bdf8)'
+  },
+  {
+    id: 'neon',
+    name: 'Neon Orchid',
+    label: 'Neon',
+    stops: ['#f43f5e', '#d946ef', '#6366f1'],
+    areaColor: '#d946ef',
+    trend: ['#84cc16', '#a3e635'],
+    trendGlow: 'rgba(132, 204, 22, 0.5)',
+    trendBadgeBg: 'rgba(132, 204, 22, 0.15)',
+    trendBadgeColor: '#a3e635',
+    trendBadgeBorder: 'rgba(132, 204, 22, 0.35)',
+    swatch: 'linear-gradient(135deg, #d946ef, #a3e635)'
+  }
+];
+
 export default function DashboardOverview({
   trades = [],
   accountBalance = 10000,
@@ -38,6 +94,9 @@ export default function DashboardOverview({
   const [hoveredPoint, setHoveredPoint] = useState(null);
   const [isEditingTarget, setIsEditingTarget] = useState(false);
   const [targetInput, setTargetInput] = useState((milestoneTarget || 500).toString());
+  const [graphThemeId, setGraphThemeId] = useState('cyber');
+
+  const activeGraphTheme = GRAPH_COLOR_THEMES.find(t => t.id === graphThemeId) || GRAPH_COLOR_THEMES[0];
 
   // Closed & Open Trades
   const closedTrades = trades
@@ -176,6 +235,36 @@ export default function DashboardOverview({
   const zeroY = getY(0);
   const pathD = equityPoints.map((pt, idx) => `${idx === 0 ? 'M' : 'L'} ${getX(idx)} ${getY(pt.cumulative)}`).join(' ');
   const areaD = `${pathD} L ${getX(equityPoints.length - 1)} ${zeroY} L ${getX(0)} ${zeroY} Z`;
+
+  // Linear Regression Trendline: y = m * x + b
+  const numPts = equityPoints.length;
+  let sumX = 0;
+  let sumY = 0;
+  let sumXY = 0;
+  let sumXX = 0;
+
+  for (let i = 0; i < numPts; i++) {
+    const x = i;
+    const y = equityPoints[i].cumulative;
+    sumX += x;
+    sumY += y;
+    sumXY += x * y;
+    sumXX += x * x;
+  }
+
+  const denominator = numPts * sumXX - sumX * sumX;
+  const trendSlope = denominator !== 0 ? (numPts * sumXY - sumX * sumY) / denominator : 0;
+  const trendIntercept = numPts > 0 ? (sumY - trendSlope * sumX) / numPts : 0;
+
+  const trendStartVal = trendIntercept;
+  const trendEndVal = trendSlope * (numPts - 1) + trendIntercept;
+
+  const trendX1 = getX(0);
+  const trendY1 = getY(trendStartVal);
+  const trendX2 = getX(numPts - 1);
+  const trendY2 = getY(trendEndVal);
+
+  const isTrendBullish = trendSlope >= 0;
 
   // Performance by Setup
   const setupStats = {};
@@ -542,28 +631,116 @@ export default function DashboardOverview({
       <div className="analytics-grid">
         
         {/* LEFT COLUMN: Equity Curve & Setup Edge */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-          
-          {/* Equity Curve SVG Chart */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>          {/* Equity Curve SVG Chart */}
           <div className="chart-card">
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div className="chart-title">
-                <LineChart size={18} color="var(--accent-primary)" />
-                <span>Cumulative Equity Growth</span>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.6rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+                <div className="chart-title">
+                  <LineChart size={18} color="var(--accent-primary)" />
+                  <span>Cumulative Equity Growth</span>
+                </div>
+
+                {numPts > 1 && (
+                  <span className="badge" style={{ 
+                    background: isTrendBullish ? activeGraphTheme.trendBadgeBg : 'rgba(239, 68, 68, 0.15)', 
+                    color: isTrendBullish ? activeGraphTheme.trendBadgeColor : '#f87171', 
+                    border: isTrendBullish ? `1px solid ${activeGraphTheme.trendBadgeBorder}` : '1px solid rgba(239, 68, 68, 0.35)', 
+                    fontSize: '0.72rem', 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    gap: '4px',
+                    padding: '3px 8px'
+                  }}>
+                    {isTrendBullish ? <TrendingUp size={12} /> : <TrendingDown size={12} />}
+                    Trend: {isTrendBullish ? '↗ Bullish' : '↘ Bearish'} ({isTrendBullish ? '+' : ''}${trendSlope.toFixed(2)}/trade)
+                  </span>
+                )}
               </div>
-              <button className="btn btn-secondary" style={{ padding: '0.3rem 0.65rem', fontSize: '0.75rem' }} onClick={() => onNavigateTab('analytics')}>
-                <span>Detailed Analytics</span>
-                <ChevronRight size={14} />
-              </button>
+
+              {/* Color Theme Selector & Legend */}
+              <div style={{ display: 'flex', gap: '0.6rem', alignItems: 'center', fontSize: '0.75rem', color: 'var(--text-muted)', flexWrap: 'wrap' }}>
+                {/* Palette Switcher */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '4px', background: 'rgba(255,255,255,0.04)', padding: '2px 5px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.08)' }}>
+                  <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.03em', paddingRight: '2px' }}>Colors:</span>
+                  {GRAPH_COLOR_THEMES.map(theme => (
+                    <button
+                      key={theme.id}
+                      onClick={() => setGraphThemeId(theme.id)}
+                      title={`${theme.name} Palette`}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '3px',
+                        background: graphThemeId === theme.id ? 'rgba(255,255,255,0.12)' : 'transparent',
+                        border: graphThemeId === theme.id ? '1px solid rgba(255,255,255,0.3)' : '1px solid transparent',
+                        borderRadius: '5px',
+                        padding: '2px 5px',
+                        cursor: 'pointer',
+                        fontSize: '0.66rem',
+                        fontWeight: graphThemeId === theme.id ? 700 : 500,
+                        color: graphThemeId === theme.id ? '#ffffff' : 'var(--text-muted)',
+                        transition: 'all 0.15s ease'
+                      }}
+                    >
+                      <span style={{
+                        width: '9px',
+                        height: '9px',
+                        borderRadius: '50%',
+                        background: theme.swatch,
+                        display: 'inline-block',
+                        boxShadow: graphThemeId === theme.id ? `0 0 6px ${theme.trend[1]}` : 'none'
+                      }} />
+                      <span>{theme.label}</span>
+                    </button>
+                  ))}
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  <span style={{ display: 'inline-block', width: '12px', height: '3px', borderRadius: '2px', background: `linear-gradient(90deg, ${activeGraphTheme.stops[0]}, ${activeGraphTheme.stops[1]}, ${activeGraphTheme.stops[2]})` }}></span>
+                  <span style={{ color: 'var(--text-secondary)' }}>Curve</span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  <span style={{ display: 'inline-block', width: '12px', height: '0px', borderTop: `2.5px dashed ${activeGraphTheme.trend[1]}` }}></span>
+                  <span style={{ color: activeGraphTheme.trend[1], fontWeight: 600 }}>Trend (Animatic)</span>
+                </div>
+                <button className="btn btn-secondary" style={{ padding: '0.22rem 0.5rem', fontSize: '0.72rem' }} onClick={() => onNavigateTab('analytics')}>
+                  <span>Analytics</span>
+                  <ChevronRight size={12} />
+                </button>
+              </div>
             </div>
 
-            <div style={{ position: 'relative', width: '100%', overflowX: 'auto' }}>
+            <div style={{ position: 'relative', width: '100%', overflowX: 'auto', marginTop: '0.5rem' }}>
               <svg viewBox={`0 0 ${chartWidth} ${chartHeight}`} style={{ width: '100%', height: 'auto', minWidth: '480px' }}>
                 <defs>
-                  <linearGradient id="dashEquityGrad" x1="0%" y1="0%" x2="0%" y2="100%">
-                    <stop offset="0%" stopColor="var(--accent-primary)" stopOpacity="0.32" />
-                    <stop offset="100%" stopColor="var(--accent-primary)" stopOpacity="0.00" />
+                  {/* Distinct Multi-Color Line Gradient */}
+                  <linearGradient id="dashEquityStrokeGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                    <stop offset="0%" stopColor={activeGraphTheme.stops[0]} />
+                    <stop offset="50%" stopColor={activeGraphTheme.stops[1]} />
+                    <stop offset="100%" stopColor={netPnL >= 0 ? activeGraphTheme.stops[2] : '#f43f5e'} />
                   </linearGradient>
+
+                  {/* Multi-Color Area Fill Gradient */}
+                  <linearGradient id="dashEquityGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+                    <stop offset="0%" stopColor={activeGraphTheme.stops[0]} stopOpacity="0.38" />
+                    <stop offset="50%" stopColor={activeGraphTheme.stops[1]} stopOpacity="0.15" />
+                    <stop offset="100%" stopColor={activeGraphTheme.stops[2]} stopOpacity="0.0" />
+                  </linearGradient>
+
+                  {/* Glowing Animated Trendline Gradient */}
+                  <linearGradient id="dashTrendGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                    <stop offset="0%" stopColor={activeGraphTheme.trend[0]} />
+                    <stop offset="100%" stopColor={activeGraphTheme.trend[1]} />
+                  </linearGradient>
+
+                  {/* SVG Glow Filter */}
+                  <filter id="dashTrendGlow" x="-30%" y="-30%" width="160%" height="160%">
+                    <feGaussianBlur stdDeviation="2.5" result="blur" />
+                    <feMerge>
+                      <feMergeNode in="blur" />
+                      <feMergeNode in="SourceGraphic" />
+                    </feMerge>
+                  </filter>
                 </defs>
 
                 {/* Zero line */}
@@ -573,7 +750,7 @@ export default function DashboardOverview({
                 {/* Peak line */}
                 {peak > 0 && (
                   <g>
-                    <line x1={padding.left} y1={getY(peak)} x2={chartWidth - padding.right} y2={getY(peak)} stroke="rgba(16, 185, 129, 0.2)" strokeDasharray="2 2" />
+                    <line x1={padding.left} y1={getY(peak)} x2={chartWidth - padding.right} y2={getY(peak)} stroke="rgba(16, 185, 129, 0.25)" strokeDasharray="2 2" />
                     <text x={chartWidth - padding.right} y={getY(peak) - 4} textAnchor="end" fill="var(--color-win)" fontSize="9">Peak: +${peak.toFixed(0)}</text>
                   </g>
                 )}
@@ -583,9 +760,81 @@ export default function DashboardOverview({
                   <path d={areaD} fill="url(#dashEquityGrad)" />
                 )}
 
-                {/* Line curve */}
+                {/* ANIMATIC TREND LINE (Best-Fit Trajectory) */}
+                {numPts > 1 && (
+                  <g filter="url(#dashTrendGlow)">
+                    {/* Glowing under-beam */}
+                    <line 
+                      x1={trendX1} 
+                      y1={trendY1} 
+                      x2={trendX2} 
+                      y2={trendY2} 
+                      stroke={activeGraphTheme.trendGlow} 
+                      strokeWidth="6" 
+                      strokeLinecap="round" 
+                    />
+                    {/* Flowing animated dashed trend line */}
+                    <line 
+                      x1={trendX1} 
+                      y1={trendY1} 
+                      x2={trendX2} 
+                      y2={trendY2} 
+                      stroke="url(#dashTrendGrad)" 
+                      strokeWidth="2.5" 
+                      strokeDasharray="6 4" 
+                      strokeLinecap="round"
+                      className="anim-trend-flow" 
+                    />
+                    {/* Animatic Traveling Comet Particle along Trendline */}
+                    <circle r="4" fill={activeGraphTheme.trend[1]} filter="url(#dashTrendGlow)">
+                      <animate attributeName="cx" from={trendX1} to={trendX2} dur="2.4s" repeatCount="indefinite" />
+                      <animate attributeName="cy" from={trendY1} to={trendY2} dur="2.4s" repeatCount="indefinite" />
+                      <animate attributeName="opacity" values="0;0.9;1;0.9;0" dur="2.4s" repeatCount="indefinite" />
+                    </circle>
+                    <circle r="7" fill={activeGraphTheme.trend[0]} opacity="0.35" filter="url(#dashTrendGlow)">
+                      <animate attributeName="cx" from={trendX1} to={trendX2} dur="2.4s" repeatCount="indefinite" />
+                      <animate attributeName="cy" from={trendY1} to={trendY2} dur="2.4s" repeatCount="indefinite" />
+                      <animate attributeName="opacity" values="0;0.4;0.5;0.3;0" dur="2.4s" repeatCount="indefinite" />
+                    </circle>
+                  </g>
+                )}
+
+                {/* Main Equity Curve with Distinct Multi-Color Gradient */}
                 {equityPoints.length > 1 && (
-                  <path d={pathD} fill="none" stroke="var(--accent-primary)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+                  <path 
+                    d={pathD} 
+                    fill="none" 
+                    stroke="url(#dashEquityStrokeGrad)" 
+                    strokeWidth="3" 
+                    strokeLinecap="round" 
+                    strokeLinejoin="round" 
+                  />
+                )}
+
+                {/* Animated Pulsing Beacon on Latest Trade */}
+                {numPts > 1 && (
+                  <g>
+                    <circle
+                      cx={getX(numPts - 1)}
+                      cy={getY(equityPoints[numPts - 1].cumulative)}
+                      r="5"
+                      fill="none"
+                      stroke={equityPoints[numPts - 1].pnl >= 0 ? activeGraphTheme.stops[2] : '#f43f5e'}
+                      strokeWidth="2"
+                      className="anim-radar-ping"
+                    >
+                      <animate attributeName="r" values="5;14;20" dur="1.8s" repeatCount="indefinite" />
+                      <animate attributeName="opacity" values="1;0.5;0" dur="1.8s" repeatCount="indefinite" />
+                    </circle>
+                    <circle
+                      cx={getX(numPts - 1)}
+                      cy={getY(equityPoints[numPts - 1].cumulative)}
+                      r="4.5"
+                      fill={equityPoints[numPts - 1].pnl >= 0 ? activeGraphTheme.stops[2] : '#f43f5e'}
+                      stroke="#ffffff"
+                      strokeWidth="2"
+                    />
+                  </g>
                 )}
 
                 {/* Points */}
@@ -598,11 +847,11 @@ export default function DashboardOverview({
                       key={idx}
                       cx={cx}
                       cy={cy}
-                      r={hoveredPoint === idx ? 6 : 3.5}
-                      fill={pt.pnl >= 0 ? 'var(--color-win)' : 'var(--color-loss)'}
+                      r={hoveredPoint === idx ? 6.5 : 3.5}
+                      fill={pt.pnl >= 0 ? '#10b981' : '#f43f5e'}
                       stroke="#fff"
-                      strokeWidth="1.5"
-                      style={{ cursor: 'pointer', transition: 'r 0.15s ease' }}
+                      strokeWidth={hoveredPoint === idx ? 2 : 1.2}
+                      style={{ cursor: 'pointer', transition: 'all 0.15s ease' }}
                       onMouseEnter={() => setHoveredPoint(idx)}
                       onMouseLeave={() => setHoveredPoint(null)}
                     />
