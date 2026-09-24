@@ -1075,8 +1075,13 @@ body {
   gap: 0.5rem;
 }
 
-/* Full-Page Background for Trading Calendar Page Only */
+/* Trading Calendar Container with Synchronized Scaling Background */
 .main-content.calendar-page-active {
+  padding: 0;
+  background: transparent;
+}
+
+.calendar-view-container {
   position: relative;
   min-height: calc(100vh - 130px);
   background-image: 
@@ -1085,18 +1090,25 @@ body {
   background-size: cover;
   background-position: center center;
   background-repeat: no-repeat;
-  background-attachment: fixed;
+  background-attachment: scroll;
   border-radius: 16px;
+  padding: 1.5rem 1.75rem;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
   transition: background-image 0.3s ease;
 }
 
 @media (max-width: 768px) {
-  .main-content.calendar-page-active {
-    background-attachment: scroll; /* Smooth mobile performance */
+  .calendar-view-container {
+    padding: 1rem;
+    border-radius: 12px;
   }
 }
 
-.calendar-page-active .calendar-card {
+.calendar-page-active .calendar-card,
+.calendar-card {
   position: relative;
   background: rgba(15, 23, 42, 0.58);
   backdrop-filter: blur(10px);
@@ -1106,7 +1118,8 @@ body {
   overflow: hidden;
 }
 
-.calendar-page-active .calendar-drilldown-card {
+.calendar-page-active .calendar-drilldown-card,
+.calendar-drilldown-card {
   background: rgba(15, 23, 42, 0.70);
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);

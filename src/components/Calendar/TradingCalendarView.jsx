@@ -86,7 +86,7 @@ export default function TradingCalendarView({ trades, onEditTrade }) {
   };
 
   return (
-    <div className="calendar-view-container" style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+    <div className="calendar-view-container">
       {/* Calendar Header & Monthly Summary */}
       <div className="chart-card calendar-card">
         <div className="calendar-summary-bar">
