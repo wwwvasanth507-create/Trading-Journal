@@ -12,6 +12,7 @@ export default function KeyboardShortcutsModal({ isOpen, onClose }) {
     { key: '3', description: 'Switch to Analytics & Equity tab' },
     { key: '4', description: 'Switch to Psychology & Rules tab' },
     { key: '5', description: 'Switch to Trading Calendar tab' },
+    { key: '6', description: 'Switch to Position Calculator tab' },
     { key: '?', description: 'Show keyboard shortcuts helper' },
     { key: 'Esc', description: 'Close any active modal' }
   ];

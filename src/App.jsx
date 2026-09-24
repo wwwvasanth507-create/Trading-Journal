@@ -11,6 +11,7 @@ import DashboardOverview from './components/Dashboard/DashboardOverview';
 import PsychologyAuditView from './components/Psychology/PsychologyAuditView';
 import TradingCalendarView from './components/Calendar/TradingCalendarView';
 import RiskCalculatorModal from './components/Calculator/RiskCalculatorModal';
+import PositionCalculatorView from './components/Calculator/PositionCalculatorView';
 import KeyboardShortcutsModal from './components/KeyboardShortcutsModal';
 import { 
   loadTrades, 
@@ -94,6 +95,8 @@ export default function App() {
         setActiveTab('psychology');
       } else if (e.key === '5') {
         setActiveTab('calendar');
+      } else if (e.key === '6') {
+        setActiveTab('calculator');
       }
     };
 
@@ -238,7 +241,7 @@ export default function App() {
         milestoneTarget={milestoneTarget}
         setMilestoneTarget={setMilestoneTarget}
         onOpenNewTradeModal={handleOpenNewTrade}
-        onOpenCalculator={() => setIsCalculatorOpen(true)}
+        onOpenCalculator={() => setActiveTab('calculator')}
         onOpenShortcuts={() => setIsShortcutsOpen(true)}
         onResetDemo={handleResetDemo}
       />
@@ -262,7 +265,7 @@ export default function App() {
             setMilestoneTarget={setMilestoneTarget}
             onAddTrade={handleOpenNewTrade}
             onEditTrade={handleEditTrade}
-            onOpenCalculator={() => setIsCalculatorOpen(true)}
+            onOpenCalculator={() => setActiveTab('calculator')}
             onNavigateTab={setActiveTab}
             onViewImage={(url, title) => setViewingImage({ url, title })}
           />
@@ -318,6 +321,15 @@ export default function App() {
           <TradingCalendarView 
             trades={trades} 
             onEditTrade={handleEditTrade} 
+          />
+        )}
+
+        {/* VIEW 5: POSITION SIZE & RISK CALCULATOR (LIQUID DISPLAY) */}
+        {activeTab === 'calculator' && (
+          <PositionCalculatorView 
+            accountBalance={accountBalance}
+            onApplyToNewTrade={handleApplyFromCalculator}
+            onNavigateTab={setActiveTab}
           />
         )}
       </main>

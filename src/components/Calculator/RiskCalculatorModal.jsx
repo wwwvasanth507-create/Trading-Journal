@@ -54,7 +54,7 @@ export default function RiskCalculatorModal({
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div 
-        className="modal-container" 
+        className="modal-container liquid-modal-container" 
         onClick={e => e.stopPropagation()} 
         style={{ maxWidth: '640px' }}
       >
