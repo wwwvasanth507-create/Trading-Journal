@@ -1075,15 +1075,16 @@ body {
   gap: 0.5rem;
 }
 
-/* Trading Calendar Container with Synchronized Scaling Background */
-.main-content.calendar-page-active {
-  padding: 0;
-  background: transparent;
+/* Trading Calendar - Background attached directly to the calendar container */
+.calendar-view-container {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
 }
 
-.calendar-view-container {
+.calendar-page-active .calendar-card,
+.calendar-card {
   position: relative;
-  min-height: calc(100vh - 130px);
   background-image: 
     linear-gradient(rgba(9, 13, 22, 0.62), rgba(9, 13, 22, 0.74)), 
     url('/calendar-wallpaper.jpg');
@@ -1091,40 +1092,27 @@ body {
   background-position: center center;
   background-repeat: no-repeat;
   background-attachment: scroll;
-  border-radius: 16px;
-  padding: 1.5rem 1.75rem;
-  box-sizing: border-box;
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
-  transition: background-image 0.3s ease;
-}
-
-@media (max-width: 768px) {
-  .calendar-view-container {
-    padding: 1rem;
-    border-radius: 12px;
-  }
-}
-
-.calendar-page-active .calendar-card,
-.calendar-card {
-  position: relative;
-  background: rgba(15, 23, 42, 0.58);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
   border: 1px solid rgba(255, 255, 255, 0.14);
   box-shadow: 0 16px 40px -10px rgba(0, 0, 0, 0.65), 0 0 25px rgba(59, 130, 246, 0.12);
+  border-radius: 14px;
   overflow: hidden;
+  transition: background-image 0.3s ease;
 }
 
 .calendar-page-active .calendar-drilldown-card,
 .calendar-drilldown-card {
-  background: rgba(15, 23, 42, 0.70);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
+  position: relative;
+  background-image: 
+    linear-gradient(rgba(9, 13, 22, 0.72), rgba(9, 13, 22, 0.84)), 
+    url('/calendar-wallpaper.jpg');
+  background-size: cover;
+  background-position: center center;
+  background-repeat: no-repeat;
+  background-attachment: scroll;
   border: 1px solid rgba(255, 255, 255, 0.14);
   box-shadow: 0 12px 30px rgba(0, 0, 0, 0.5);
+  border-radius: 14px;
+  overflow: hidden;
 }
 
 .calendar-summary-bar {
