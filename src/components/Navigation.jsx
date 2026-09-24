@@ -1,12 +1,13 @@
 import React from 'react';
-import { Table, LineChart, BrainCircuit, Calendar } from 'lucide-react';
+import { LayoutDashboard, Table, LineChart, BrainCircuit, Calendar } from 'lucide-react';
 
 export default function Navigation({ activeTab, setActiveTab, totalTrades, closedTradesCount }) {
   const tabs = [
-    { id: 'sheet', label: 'Journal Sheet', icon: Table, count: totalTrades, key: '1' },
-    { id: 'analytics', label: 'Analytics & Equity', icon: LineChart, count: closedTradesCount, key: '2' },
-    { id: 'psychology', label: 'Psychology & Rules', icon: BrainCircuit, count: null, key: '3' },
-    { id: 'calendar', label: 'Trading Calendar', icon: Calendar, count: null, key: '4' },
+    { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, count: null, key: '1' },
+    { id: 'sheet', label: 'Journal Sheet', icon: Table, count: totalTrades, key: '2' },
+    { id: 'analytics', label: 'Analytics & Equity', icon: LineChart, count: closedTradesCount, key: '3' },
+    { id: 'psychology', label: 'Psychology & Rules', icon: BrainCircuit, count: null, key: '4' },
+    { id: 'calendar', label: 'Trading Calendar', icon: Calendar, count: null, key: '5' },
   ];
 
   return (

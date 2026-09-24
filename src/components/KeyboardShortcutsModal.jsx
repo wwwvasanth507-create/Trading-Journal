@@ -7,10 +7,11 @@ export default function KeyboardShortcutsModal({ isOpen, onClose }) {
   const shortcuts = [
     { key: 'N', description: 'Log a new trade modal' },
     { key: 'C', description: 'Open Position Size / Risk Calculator' },
-    { key: '1', description: 'Switch to Journal Sheet tab' },
-    { key: '2', description: 'Switch to Analytics & Equity tab' },
-    { key: '3', description: 'Switch to Psychology & Rules tab' },
-    { key: '4', description: 'Switch to Trading Calendar tab' },
+    { key: '1', description: 'Switch to Dashboard tab' },
+    { key: '2', description: 'Switch to Journal Sheet tab' },
+    { key: '3', description: 'Switch to Analytics & Equity tab' },
+    { key: '4', description: 'Switch to Psychology & Rules tab' },
+    { key: '5', description: 'Switch to Trading Calendar tab' },
     { key: '?', description: 'Show keyboard shortcuts helper' },
     { key: 'Esc', description: 'Close any active modal' }
   ];

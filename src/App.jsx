@@ -7,6 +7,7 @@ import TableGrid from './components/ExcelSheet/TableGrid';
 import TradeModal from './components/ExcelSheet/TradeModal';
 import ImageModal from './components/ExcelSheet/ImageModal';
 import AnalyticsView from './components/Dashboard/AnalyticsView';
+import DashboardOverview from './components/Dashboard/DashboardOverview';
 import PsychologyAuditView from './components/Psychology/PsychologyAuditView';
 import TradingCalendarView from './components/Calendar/TradingCalendarView';
 import RiskCalculatorModal from './components/Calculator/RiskCalculatorModal';
@@ -27,7 +28,7 @@ export default function App() {
   const [trades, setTrades] = useState(() => loadTrades());
   const [accountBalance, setAccountBalance] = useState(() => loadAccountBalance());
   const [milestoneTarget, setMilestoneTarget] = useState(() => loadMilestoneTarget());
-  const [activeTab, setActiveTab] = useState('sheet');
+  const [activeTab, setActiveTab] = useState('dashboard');
   const [isCompact, setIsCompact] = useState(false);
 
   // Search & Filter State
@@ -84,12 +85,14 @@ export default function App() {
         e.preventDefault();
         setIsShortcutsOpen(prev => !prev);
       } else if (e.key === '1') {
-        setActiveTab('sheet');
+        setActiveTab('dashboard');
       } else if (e.key === '2') {
-        setActiveTab('analytics');
+        setActiveTab('sheet');
       } else if (e.key === '3') {
-        setActiveTab('psychology');
+        setActiveTab('analytics');
       } else if (e.key === '4') {
+        setActiveTab('psychology');
+      } else if (e.key === '5') {
         setActiveTab('calendar');
       }
     };
@@ -250,6 +253,21 @@ export default function App() {
 
       {/* Content Body */}
       <main className={`main-content ${activeTab === 'calendar' ? 'calendar-page-active' : ''}`}>
+        {/* VIEW 0: ALL-IN-ONE DASHBOARD */}
+        {activeTab === 'dashboard' && (
+          <DashboardOverview 
+            trades={trades}
+            accountBalance={accountBalance}
+            milestoneTarget={milestoneTarget}
+            setMilestoneTarget={setMilestoneTarget}
+            onAddTrade={handleOpenNewTrade}
+            onEditTrade={handleEditTrade}
+            onOpenCalculator={() => setIsCalculatorOpen(true)}
+            onNavigateTab={setActiveTab}
+            onViewImage={(url, title) => setViewingImage({ url, title })}
+          />
+        )}
+
         {/* VIEW 1: EXCEL SMART SHEET */}
         {activeTab === 'sheet' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
