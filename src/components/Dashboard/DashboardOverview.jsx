@@ -355,11 +355,7 @@ export default function DashboardOverview({
     <div className="dashboard-overview-container" style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
       
       {/* 1. EXECUTIVE WELCOME & QUICK ACTIONS HEADER */}
-      <div className="chart-card dashboard-hero-card" style={{ 
-        background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.85) 0%, rgba(20, 29, 52, 0.95) 100%)',
-        border: '1px solid rgba(255, 255, 255, 0.1)',
-        padding: '1.25rem 1.5rem'
-      }}>
+      <div className="chart-card dashboard-hero-card">
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
@@ -525,10 +521,7 @@ export default function DashboardOverview({
       </div>
 
       {/* 3. MILESTONE PROGRESS TRACKER */}
-      <div className="chart-card" style={{ 
-        background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.75) 0%, rgba(20, 29, 52, 0.85) 100%)',
-        border: milestoneProgress.isAchieved ? '1px solid var(--color-win-border)' : '1px solid var(--border-card)'
-      }}>
+      <div className={`chart-card milestone-progress-card ${milestoneProgress.isAchieved ? 'achieved' : ''}`}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
             <div style={{ 
@@ -1086,7 +1079,7 @@ export default function DashboardOverview({
             {pairList.map(([pair, d]) => {
               const pWinRate = d.count > 0 ? Math.round((d.wins / d.count) * 100) : 0;
               return (
-                <div key={pair} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.5rem 0.75rem', background: 'var(--bg-secondary)', borderRadius: '6px' }}>
+                <div key={pair} className="liquid-stat-row">
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                     <strong>{pair}</strong>
                     <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>({d.count} trades)</span>
@@ -1113,7 +1106,7 @@ export default function DashboardOverview({
             {sessionList.map(([session, d]) => {
               const sWinRate = d.count > 0 ? Math.round((d.wins / d.count) * 100) : 0;
               return (
-                <div key={session} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.5rem 0.75rem', background: 'var(--bg-secondary)', borderRadius: '6px' }}>
+                <div key={session} className="liquid-stat-row">
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                     <strong>{session}</strong>
                     <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>({d.count} trades)</span>
@@ -1154,14 +1147,13 @@ export default function DashboardOverview({
             recentTrades.map(t => (
               <div 
                 key={t.id}
+                className="liquid-trade-row"
                 style={{ 
                   display: 'flex', 
                   justifyContent: 'space-between', 
                   alignItems: 'center', 
                   padding: '0.75rem 1rem', 
-                  background: 'var(--bg-secondary)', 
-                  borderRadius: '8px', 
-                  border: '1px solid var(--border-subtle)',
+                  borderRadius: '10px', 
                   flexWrap: 'wrap',
                   gap: '0.75rem'
                 }}
