@@ -126,12 +126,12 @@ export default function Header({
         <div className="brand-icon">
           <img 
             src="/app-logo.jpg" 
-            alt="RAGUL TRADING JOURNAL Logo" 
+            alt="TOMMY SHELBY $ Logo" 
             className="brand-icon-img" 
           />
         </div>
         <div>
-          <h1 className="brand-title">RAGUL TRADING JOURNAL</h1>
+          <h1 className="brand-title">TOMMY SHELBY $</h1>
           <div className="brand-subtitle">Smart Sheet & Precision Terminal</div>
         </div>
       </div>
