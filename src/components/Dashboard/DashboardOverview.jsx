@@ -692,10 +692,6 @@ export default function DashboardOverview({
                   <span style={{ display: 'inline-block', width: '12px', height: '3px', borderRadius: '2px', background: `linear-gradient(90deg, ${activeGraphTheme.stops[0]}, ${activeGraphTheme.stops[1]}, ${activeGraphTheme.stops[2]})` }}></span>
                   <span style={{ color: 'var(--text-secondary)' }}>Curve</span>
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                  <span style={{ display: 'inline-block', width: '12px', height: '0px', borderTop: `2.5px dashed ${activeGraphTheme.trend[1]}` }}></span>
-                  <span style={{ color: activeGraphTheme.trend[1], fontWeight: 600 }}>Trend (Animatic)</span>
-                </div>
                 <button className="btn btn-secondary" style={{ padding: '0.22rem 0.5rem', fontSize: '0.72rem' }} onClick={() => onNavigateTab('analytics')}>
                   <span>Analytics</span>
                   <ChevronRight size={12} />
@@ -747,45 +743,6 @@ export default function DashboardOverview({
                 {/* Area under curve */}
                 {equityPoints.length > 1 && (
                   <path d={areaD} fill="url(#dashEquityGrad)" />
-                )}
-
-                {/* ANIMATIC TREND LINE (Best-Fit Trajectory) */}
-                {numPts > 1 && (
-                  <g filter="url(#dashTrendGlow)">
-                    {/* Glowing under-beam */}
-                    <line 
-                      x1={trendX1} 
-                      y1={trendY1} 
-                      x2={trendX2} 
-                      y2={trendY2} 
-                      stroke={activeGraphTheme.trendGlow} 
-                      strokeWidth="6" 
-                      strokeLinecap="round" 
-                    />
-                    {/* Flowing animated dashed trend line */}
-                    <line 
-                      x1={trendX1} 
-                      y1={trendY1} 
-                      x2={trendX2} 
-                      y2={trendY2} 
-                      stroke="url(#dashTrendGrad)" 
-                      strokeWidth="2.5" 
-                      strokeDasharray="6 4" 
-                      strokeLinecap="round"
-                      className="anim-trend-flow" 
-                    />
-                    {/* Animatic Traveling Comet Particle along Trendline */}
-                    <circle r="4" fill={activeGraphTheme.trend[1]} filter="url(#dashTrendGlow)">
-                      <animate attributeName="cx" from={trendX1} to={trendX2} dur="2.4s" repeatCount="indefinite" />
-                      <animate attributeName="cy" from={trendY1} to={trendY2} dur="2.4s" repeatCount="indefinite" />
-                      <animate attributeName="opacity" values="0;0.9;1;0.9;0" dur="2.4s" repeatCount="indefinite" />
-                    </circle>
-                    <circle r="7" fill={activeGraphTheme.trend[0]} opacity="0.35" filter="url(#dashTrendGlow)">
-                      <animate attributeName="cx" from={trendX1} to={trendX2} dur="2.4s" repeatCount="indefinite" />
-                      <animate attributeName="cy" from={trendY1} to={trendY2} dur="2.4s" repeatCount="indefinite" />
-                      <animate attributeName="opacity" values="0;0.4;0.5;0.3;0" dur="2.4s" repeatCount="indefinite" />
-                    </circle>
-                  </g>
                 )}
 
                 {/* Main Equity Curve with Distinct Multi-Color Gradient */}

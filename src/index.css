@@ -955,7 +955,7 @@ body {
 .add-trade-modal-container {
   position: relative;
   background-image: 
-    linear-gradient(rgba(8, 14, 28, 0.82), rgba(10, 16, 34, 0.90)),
+    linear-gradient(rgba(8, 14, 28, 0.52), rgba(10, 16, 34, 0.68)),
     url('/add-trade-wallpaper.jpg') !important;
   background-size: cover !important;
   background-position: center center !important;
