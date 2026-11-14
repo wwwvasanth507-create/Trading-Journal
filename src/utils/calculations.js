@@ -202,9 +202,6 @@ export function autoCalculateTrade(trade, accountBalance = 10000) {
   const direction = (updated.direction || 'BUY').toUpperCase();
   updated.direction = direction;
 
-  // Calculate Risk $
-  const riskAmount = calculateRiskAmount(accountBalance, updated.riskPercent);
-
   // If entry and SL exist:
   const slDist = calculateSLDistance(direction, updated.entryPrice, updated.stopLoss);
   const tpDist = calculateTPDistance(direction, updated.entryPrice, updated.takeProfit);
@@ -213,6 +210,16 @@ export function autoCalculateTrade(trade, accountBalance = 10000) {
   if (updated.lotSize !== '' && updated.lotSize !== undefined && updated.lotSize !== null) {
     const parsedLot = parseFloat(updated.lotSize);
     updated.lotSize = isNaN(parsedLot) ? updated.lotSize : parsedLot;
+  }
+
+  // Calculate Risk $ from manual lot size or riskPercent
+  const multiplier = getMultiplierForPair(updated.pair);
+  const riskAmount = (updated.lotSize > 0 && slDist > 0)
+    ? parseFloat((updated.lotSize * slDist * multiplier).toFixed(2))
+    : calculateRiskAmount(accountBalance, updated.riskPercent);
+
+  if ((!updated.riskPercent || updated.riskPercent === '') && accountBalance > 0 && riskAmount > 0) {
+    updated.riskPercent = parseFloat(((riskAmount / accountBalance) * 100).toFixed(2));
   }
 
   // Planned R:R

@@ -14,8 +14,10 @@ import {
   calculateSLDistance, 
   calculatePlannedRR, 
   calculateRiskAmount,
+  calculateRiskPercentFromLots,
   calculatePnL,
-  calculateRealizedRR 
+  calculateRealizedRR,
+  getMultiplierForPair
 } from '../../utils/calculations';
 import { 
   SETUP_OPTIONS, 
@@ -109,7 +111,10 @@ export default function TradeModal({
   const lotNum = parseFloat(formData.lotSize) || 0;
 
   const slDist = calculateSLDistance(formData.direction, entryNum, slNum);
-  const dollarRisk = calculateRiskAmount(accountBalance, riskPctNum);
+  const multiplier = getMultiplierForPair(formData.pair);
+  const dollarRisk = (slDist > 0 && lotNum > 0)
+    ? parseFloat((lotNum * slDist * multiplier).toFixed(2))
+    : calculateRiskAmount(accountBalance, riskPctNum);
   const plannedRR = calculatePlannedRR(formData.direction, entryNum, slNum, tpNum);
 
   const livePnL = (exitNum > 0 && entryNum > 0 && lotNum > 0)
@@ -119,6 +124,33 @@ export default function TradeModal({
   const liveRealizedRR = (livePnL !== null && dollarRisk > 0)
     ? calculateRealizedRR(livePnL, dollarRisk, formData.direction, entryNum, slNum, exitNum)
     : null;
+
+  const handleLotChange = (val) => {
+    const parsed = parseFloat(val);
+    let updatedRiskPct = formData.riskPercent;
+    if (!isNaN(parsed) && parsed > 0 && entryNum > 0 && slNum > 0) {
+      updatedRiskPct = calculateRiskPercentFromLots(accountBalance, parsed, formData.direction, entryNum, slNum, formData.pair);
+    }
+    setFormData(prev => ({ ...prev, lotSize: val, riskPercent: updatedRiskPct }));
+  };
+
+  const handleEntryChange = (val) => {
+    const newEntry = parseFloat(val) || 0;
+    let updatedRiskPct = formData.riskPercent;
+    if (lotNum > 0 && newEntry > 0 && slNum > 0) {
+      updatedRiskPct = calculateRiskPercentFromLots(accountBalance, lotNum, formData.direction, newEntry, slNum, formData.pair);
+    }
+    setFormData(prev => ({ ...prev, entryPrice: val, riskPercent: updatedRiskPct }));
+  };
+
+  const handleSLChange = (val) => {
+    const newSL = parseFloat(val) || 0;
+    let updatedRiskPct = formData.riskPercent;
+    if (lotNum > 0 && entryNum > 0 && newSL > 0) {
+      updatedRiskPct = calculateRiskPercentFromLots(accountBalance, lotNum, formData.direction, entryNum, newSL, formData.pair);
+    }
+    setFormData(prev => ({ ...prev, stopLoss: val, riskPercent: updatedRiskPct }));
+  };
 
   const handleSelectAssetPreset = (asset) => {
     setFormData(prev => ({ ...prev, pair: asset.symbol }));
@@ -223,13 +255,7 @@ export default function TradeModal({
               <div className="calc-card">
                 <span className="calc-card-label">Dollar Risk</span>
                 <span className="calc-card-value">
-                  ${dollarRisk.toFixed(2)} <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>({formData.riskPercent}%)</span>
-                </span>
-              </div>
-              <div className="calc-card">
-                <span className="calc-card-label">Lot Size</span>
-                <span className="calc-card-value highlight">
-                  {formData.lotSize !== '' && formData.lotSize !== undefined && formData.lotSize !== null ? formData.lotSize : '—'}
+                  ${dollarRisk.toFixed(2)} <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>({formData.riskPercent || '—'}%)</span>
                 </span>
               </div>
               <div className="calc-card">
@@ -353,36 +379,36 @@ export default function TradeModal({
               </div>
             </div>
 
-            {/* Entry, SL, TP, Risk */}
+            {/* Entry, SL, TP, Lot Size, Risk, Exit */}
             <div className="form-grid">
               <div className="form-group">
-                <label className="form-label">Entry Price ⚡</label>
+                <label className="form-label">Entry Price</label>
                 <input 
                   type="number" 
                   step="any"
                   className="form-input cell-mono" 
                   value={formData.entryPrice} 
-                  onChange={e => setFormData({ ...formData, entryPrice: e.target.value })}
+                  onChange={e => handleEntryChange(e.target.value)}
                   placeholder="1.08200"
                   required
                 />
               </div>
 
               <div className="form-group">
-                <label className="form-label">Stop Loss Price ⚡</label>
+                <label className="form-label">Stop Loss Price</label>
                 <input 
                   type="number" 
                   step="any"
                   className="form-input cell-mono" 
                   value={formData.stopLoss} 
-                  onChange={e => setFormData({ ...formData, stopLoss: e.target.value })}
+                  onChange={e => handleSLChange(e.target.value)}
                   placeholder="1.08050"
                   required
                 />
               </div>
 
               <div className="form-group">
-                <label className="form-label">Take Profit Price ⚡</label>
+                <label className="form-label">Take Profit Price</label>
                 <input 
                   type="number" 
                   step="any"
@@ -395,27 +421,29 @@ export default function TradeModal({
               </div>
 
               <div className="form-group">
-                <label className="form-label">Risk Percentage (%) ⚡</label>
-                <input 
-                  type="number" 
-                  step="0.1"
-                  className="form-input cell-mono" 
-                  value={formData.riskPercent} 
-                  onChange={e => setFormData({ ...formData, riskPercent: e.target.value })}
-                  placeholder="1.0"
-                  required
-                />
-              </div>
-
-              <div className="form-group">
-                <label className="form-label">Position Lot Size (Manual)</label>
+                <label className="form-label" style={{ color: 'var(--accent-primary)', fontWeight: 700 }}>
+                  Lot Size (Manual)
+                </label>
                 <input 
                   type="number" 
                   step="any"
                   className="form-input cell-mono" 
                   value={formData.lotSize} 
-                  onChange={e => setFormData({ ...formData, lotSize: e.target.value })}
+                  onChange={e => handleLotChange(e.target.value)}
                   placeholder="Enter lot size (e.g. 0.50)"
+                  required
+                />
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">Risk Percentage (%)</label>
+                <input 
+                  type="number" 
+                  step="0.01"
+                  className="form-input cell-mono" 
+                  value={formData.riskPercent} 
+                  onChange={e => setFormData({ ...formData, riskPercent: e.target.value })}
+                  placeholder="1.0"
                 />
               </div>
 
