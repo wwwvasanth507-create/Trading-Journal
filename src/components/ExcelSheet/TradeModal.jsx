@@ -13,7 +13,6 @@ import {
   autoCalculateTrade, 
   calculateSLDistance, 
   calculatePlannedRR, 
-  calculateLotSize, 
   calculateRiskAmount,
   calculatePnL,
   calculateRealizedRR 
@@ -113,23 +112,13 @@ export default function TradeModal({
   const dollarRisk = calculateRiskAmount(accountBalance, riskPctNum);
   const plannedRR = calculatePlannedRR(formData.direction, entryNum, slNum, tpNum);
 
-  const suggestedLot = (slDist > 0 && dollarRisk > 0) 
-    ? calculateLotSize(accountBalance, riskPctNum, formData.direction, entryNum, slNum, formData.pair)
-    : null;
-
-  const livePnL = (exitNum > 0 && entryNum > 0 && (lotNum > 0 || (suggestedLot && suggestedLot > 0)))
-    ? calculatePnL(formData.direction, entryNum, exitNum, lotNum > 0 ? lotNum : suggestedLot, formData.pair)
+  const livePnL = (exitNum > 0 && entryNum > 0 && lotNum > 0)
+    ? calculatePnL(formData.direction, entryNum, exitNum, lotNum, formData.pair)
     : null;
 
   const liveRealizedRR = (livePnL !== null && dollarRisk > 0)
     ? calculateRealizedRR(livePnL, dollarRisk, formData.direction, entryNum, slNum, exitNum)
     : null;
-
-  const handleApplySuggestedLot = () => {
-    if (suggestedLot) {
-      setFormData(prev => ({ ...prev, lotSize: suggestedLot }));
-    }
-  };
 
   const handleSelectAssetPreset = (asset) => {
     setFormData(prev => ({ ...prev, pair: asset.symbol }));
@@ -174,7 +163,7 @@ export default function TradeModal({
       stopLoss: parseFloat(formData.stopLoss) || 0,
       takeProfit: parseFloat(formData.takeProfit) || 0,
       riskPercent: parseFloat(formData.riskPercent) || 1,
-      lotSize: parseFloat(formData.lotSize) || (suggestedLot || 0.1),
+      lotSize: formData.lotSize !== '' && !isNaN(parseFloat(formData.lotSize)) ? parseFloat(formData.lotSize) : formData.lotSize,
       exitPrice: formData.exitPrice !== '' ? parseFloat(formData.exitPrice) : '',
       pnl: formData.pnl !== '' ? parseFloat(formData.pnl) : (livePnL !== null ? livePnL : null),
     }, accountBalance);
@@ -186,7 +175,7 @@ export default function TradeModal({
   return (
     <div className="modal-overlay" onClick={onClose} onPaste={handlePaste}>
       <div 
-        className="modal-container" 
+        className="modal-container add-trade-modal-container" 
         onClick={e => e.stopPropagation()}
         style={{ maxWidth: '840px' }}
       >
@@ -211,7 +200,7 @@ export default function TradeModal({
                 {isEditing ? `Edit Trade #${formData.tradeNum}` : `Log New Trade #${formData.tradeNum}`}
               </div>
               <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                Auto-calculates SL Distance, Risk $, Lot Size, P&L, and Planned/Realized R:R
+                Auto-calculates SL Distance, Risk $, P&L, and Planned/Realized R:R
               </div>
             </div>
           </div>
@@ -223,7 +212,7 @@ export default function TradeModal({
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden' }}>
           <div className="modal-body">
             
-            {/* Live Auto-Calculation Preview Bar */}
+            {/* Live Calculation Preview Bar */}
             <div className="calc-preview-grid">
               <div className="calc-card">
                 <span className="calc-card-label">Planned R:R</span>
@@ -238,18 +227,9 @@ export default function TradeModal({
                 </span>
               </div>
               <div className="calc-card">
-                <span className="calc-card-label">Auto Lot Size</span>
-                <span className="calc-card-value highlight" style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-                  {suggestedLot ? suggestedLot : '—'}
-                  {suggestedLot && formData.lotSize !== suggestedLot && (
-                    <button 
-                      type="button" 
-                      onClick={handleApplySuggestedLot}
-                      style={{ background: 'transparent', border: 'none', color: 'var(--accent-primary)', cursor: 'pointer', fontSize: '0.7rem', textDecoration: 'underline' }}
-                    >
-                      Apply
-                    </button>
-                  )}
+                <span className="calc-card-label">Lot Size</span>
+                <span className="calc-card-value highlight">
+                  {formData.lotSize !== '' && formData.lotSize !== undefined && formData.lotSize !== null ? formData.lotSize : '—'}
                 </span>
               </div>
               <div className="calc-card">
@@ -428,14 +408,14 @@ export default function TradeModal({
               </div>
 
               <div className="form-group">
-                <label className="form-label">Position Lot Size (Override)</label>
+                <label className="form-label">Position Lot Size (Manual)</label>
                 <input 
                   type="number" 
-                  step="0.01"
+                  step="any"
                   className="form-input cell-mono" 
                   value={formData.lotSize} 
                   onChange={e => setFormData({ ...formData, lotSize: e.target.value })}
-                  placeholder={suggestedLot ? `Auto: ${suggestedLot}` : 'e.g. 0.5'}
+                  placeholder="Enter lot size (e.g. 0.50)"
                 />
               </div>
 

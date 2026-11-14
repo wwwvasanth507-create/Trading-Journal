@@ -181,7 +181,7 @@ export default function TableGrid({
               </th>
               <th onClick={() => handleSort('lotSize')} style={{ background: '#17243c', color: '#93c5fd' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                  <span>Lot Size 🤖</span> {renderSortIcon('lotSize')}
+                  <span>Lot Size</span> {renderSortIcon('lotSize')}
                 </div>
               </th>
               <th onClick={() => handleSort('exitPrice')} style={{ background: '#131b2e' }}>
@@ -365,13 +365,13 @@ export default function TableGrid({
                   <td className="cell-editable cell-mono" style={{ background: 'rgba(59, 130, 246, 0.07)' }}>
                     <input 
                       type="number" 
-                      step="0.01"
+                      step="any"
                       className="cell-input-inline cell-mono" 
                       style={{ color: '#93c5fd', fontWeight: 600 }}
                       value={t.lotSize ?? ''} 
-                      placeholder="Auto"
+                      placeholder="0.00"
                       onChange={e => handleCellChange(t.id, 'lotSize', e.target.value)}
-                      title="Auto-calculated from SL Distance and Risk %. Edit manually to override."
+                      title="Manual lot size."
                     />
                   </td>
 

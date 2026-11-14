@@ -951,6 +951,72 @@ body {
   animation: slideUp 0.25s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
+/* Add Trade / Log New Trade Modal - Dedicated Wallpaper Background ONLY for Add Trade */
+.add-trade-modal-container {
+  position: relative;
+  background-image: 
+    linear-gradient(rgba(8, 14, 28, 0.82), rgba(10, 16, 34, 0.90)),
+    url('/add-trade-wallpaper.jpg') !important;
+  background-size: cover !important;
+  background-position: center center !important;
+  background-repeat: no-repeat !important;
+  border: 1px solid rgba(255, 255, 255, 0.24) !important;
+  box-shadow: 
+    0 32px 80px rgba(0, 0, 0, 0.88),
+    0 0 40px rgba(56, 189, 248, 0.18),
+    inset 0 1px 2px rgba(255, 255, 255, 0.45) !important;
+  overflow: hidden;
+}
+
+/* Ensure inputs, labels, and text inside Add Trade Modal remain ultra-crisp and readable */
+.add-trade-modal-container .modal-header {
+  background: rgba(6, 10, 22, 0.72);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
+
+.add-trade-modal-container .modal-body {
+  background: transparent;
+}
+
+.add-trade-modal-container .modal-footer {
+  background: rgba(6, 10, 22, 0.75);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
+
+.add-trade-modal-container .form-input,
+.add-trade-modal-container .form-select,
+.add-trade-modal-container .form-textarea {
+  background: rgba(8, 14, 30, 0.78);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #ffffff;
+}
+
+.add-trade-modal-container .form-input:focus,
+.add-trade-modal-container .form-select:focus,
+.add-trade-modal-container .form-textarea:focus {
+  background: rgba(14, 22, 46, 0.92);
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 16px rgba(56, 189, 248, 0.25);
+}
+
+.add-trade-modal-container .form-label {
+  color: #f1f5f9;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.85);
+  font-weight: 600;
+}
+
+.add-trade-modal-container .calc-card {
+  background: rgba(10, 16, 36, 0.84);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+}
+
 .modal-header {
   padding: 1.25rem 1.5rem;
   border-bottom: 1px solid rgba(255, 255, 255, 0.12);

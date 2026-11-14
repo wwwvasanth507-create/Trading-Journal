@@ -736,10 +736,6 @@ export default function DashboardOverview({
                   </filter>
                 </defs>
 
-                {/* Zero line */}
-                <line x1={padding.left} y1={zeroY} x2={chartWidth - padding.right} y2={zeroY} stroke="rgba(255, 255, 255, 0.12)" strokeDasharray="3 3" />
-                <text x={padding.left - 8} y={zeroY + 4} textAnchor="end" fill="var(--text-muted)" fontSize="10">$0</text>
-
                 {/* Peak line */}
                 {peak > 0 && (
                   <g>

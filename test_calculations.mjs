@@ -61,6 +61,7 @@ const tradeRaw = {
   stopLoss: 1.07800,
   takeProfit: 1.08600,
   riskPercent: 1.0,
+  lotSize: 50000,
   exitPrice: 1.08600
 };
 const calculated = autoCalculateTrade(tradeRaw, 10000);

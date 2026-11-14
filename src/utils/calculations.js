@@ -209,9 +209,10 @@ export function autoCalculateTrade(trade, accountBalance = 10000) {
   const slDist = calculateSLDistance(direction, updated.entryPrice, updated.stopLoss);
   const tpDist = calculateTPDistance(direction, updated.entryPrice, updated.takeProfit);
 
-  // Auto calculate lot size if missing or if riskPercent is given and lotSize is not manually locked
-  if (riskAmount > 0 && slDist > 0 && (!updated.lotSize || updated.autoCalcLot !== false)) {
-    updated.lotSize = calculateLotSize(accountBalance, updated.riskPercent, direction, updated.entryPrice, updated.stopLoss, updated.pair);
+  // Manual Lot Size: automatic lot calculation is completely disabled
+  if (updated.lotSize !== '' && updated.lotSize !== undefined && updated.lotSize !== null) {
+    const parsedLot = parseFloat(updated.lotSize);
+    updated.lotSize = isNaN(parsedLot) ? updated.lotSize : parsedLot;
   }
 
   // Planned R:R
