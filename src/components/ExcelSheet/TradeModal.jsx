@@ -27,6 +27,7 @@ import {
   SESSION_OPTIONS,
   POPULAR_ASSETS 
 } from '../../utils/sampleData';
+import addTradeWallpaper from '../../assets/add-trade-wallpaper.jpg';
 
 export default function TradeModal({ 
   trade, 
@@ -209,7 +210,13 @@ export default function TradeModal({
       <div 
         className="modal-container add-trade-modal-container" 
         onClick={e => e.stopPropagation()}
-        style={{ maxWidth: '840px' }}
+        style={{ 
+          maxWidth: '840px',
+          backgroundImage: `linear-gradient(rgba(6, 10, 22, 0.30), rgba(8, 14, 28, 0.45)), url(${addTradeWallpaper})`,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center center',
+          backgroundRepeat: 'no-repeat'
+        }}
       >
         <div className="modal-header">
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>

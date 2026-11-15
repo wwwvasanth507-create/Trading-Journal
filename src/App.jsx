@@ -10,6 +10,7 @@ import AnalyticsView from './components/Dashboard/AnalyticsView';
 import DashboardOverview from './components/Dashboard/DashboardOverview';
 import PsychologyAuditView from './components/Psychology/PsychologyAuditView';
 import TradingCalendarView from './components/Calendar/TradingCalendarView';
+import AddTradeView from './components/AddTrade/AddTradeView';
 import RiskCalculatorModal from './components/Calculator/RiskCalculatorModal';
 import KeyboardShortcutsModal from './components/KeyboardShortcutsModal';
 import { 
@@ -77,7 +78,7 @@ export default function App() {
       if (e.key === 'n' || e.key === 'N') {
         e.preventDefault();
         setEditingTrade(null);
-        setIsTradeModalOpen(true);
+        setActiveTab('addTrade');
       } else if (e.key === 'c' || e.key === 'C') {
         e.preventDefault();
         setIsCalculatorOpen(true);
@@ -94,6 +95,8 @@ export default function App() {
         setActiveTab('psychology');
       } else if (e.key === '5') {
         setActiveTab('calendar');
+      } else if (e.key === '6') {
+        setActiveTab('addTrade');
       }
     };
 
@@ -181,7 +184,7 @@ export default function App() {
 
   const handleOpenNewTrade = () => {
     setEditingTrade(null);
-    setIsTradeModalOpen(true);
+    setActiveTab('addTrade');
   };
 
   const handleEditTrade = (trade) => {
@@ -318,6 +321,17 @@ export default function App() {
           <TradingCalendarView 
             trades={trades} 
             onEditTrade={handleEditTrade} 
+          />
+        )}
+
+        {/* VIEW 5: LOG NEW TRADE (ADD TRADE) */}
+        {activeTab === 'addTrade' && (
+          <AddTradeView 
+            accountBalance={accountBalance}
+            onSaveTrade={handleSaveTrade}
+            nextTradeNum={nextTradeNum}
+            onNavigateTab={setActiveTab}
+            onViewImage={(url, title) => setViewingImage({ url, title })}
           />
         )}
       </main>

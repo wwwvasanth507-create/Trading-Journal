@@ -1,5 +1,5 @@
 import React from 'react';
-import { LayoutDashboard, Table, LineChart, BrainCircuit, Calendar } from 'lucide-react';
+import { LayoutDashboard, Table, LineChart, BrainCircuit, Calendar, PlusCircle } from 'lucide-react';
 
 export default function Navigation({ activeTab, setActiveTab, totalTrades, closedTradesCount }) {
   const tabs = [
@@ -8,6 +8,7 @@ export default function Navigation({ activeTab, setActiveTab, totalTrades, close
     { id: 'analytics', label: 'Analytics & Equity', icon: LineChart, count: closedTradesCount, key: '3' },
     { id: 'psychology', label: 'Psychology & Rules', icon: BrainCircuit, count: null, key: '4' },
     { id: 'calendar', label: 'Trading Calendar', icon: Calendar, count: null, key: '5' },
+    { id: 'addTrade', label: 'Log New Trade', icon: PlusCircle, count: null, key: '6' },
   ];
 
   return (
@@ -18,7 +19,7 @@ export default function Navigation({ activeTab, setActiveTab, totalTrades, close
         return (
           <button
             key={tab.id}
-            className={`nav-tab ${isActive ? 'active' : ''}`}
+            className={`nav-tab ${isActive ? 'active' : ''} ${tab.id === 'addTrade' ? 'nav-tab-add-trade' : ''}`}
             onClick={() => setActiveTab(tab.id)}
             title={`Switch to ${tab.label} [Hotkey: ${tab.key}]`}
           >
